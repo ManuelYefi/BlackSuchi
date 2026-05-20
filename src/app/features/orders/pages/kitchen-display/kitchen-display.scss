@@ -1,0 +1,159 @@
+.kitchen-page {
+  min-height: 100vh;
+  background: #111;
+  color: #fff;
+  padding: 24px;
+}
+
+.kitchen-header h1 {
+  margin: 0 0 6px;
+}
+
+.kitchen-header p {
+  margin: 0;
+  color: #bdbdbd;
+}
+
+.kitchen-section {
+  margin-top: 28px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.section-header span {
+  color: #bdbdbd;
+  font-size: 14px;
+}
+
+.toggle-btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: #2b2b30;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kitchen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.kitchen-card {
+  background: #1b1b1d;
+  border-radius: 18px;
+  padding: 18px;
+  border: 1px solid #2b2b30;
+}
+
+.active-card {
+  border-color: #e50914;
+}
+
+.ready-card {
+  border-color: #16a34a;
+}
+
+.previous-card {
+  opacity: 0.85;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status {
+  background: #e50914;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.items {
+  margin-top: 16px;
+}
+
+.item-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #2b2b30;
+}
+
+.item-row ul {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+
+.item-row small {
+  color: #ffb4b8;
+}
+
+.status-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.status-actions button {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.empty-box {
+  background: #1b1b1d;
+  border: 1px solid #2b2b30;
+  border-radius: 18px;
+  padding: 24px;
+  color: #bdbdbd;
+}
+.priority-section {
+  margin-top: 10px;
+}
+
+.priority-card {
+  background: linear-gradient(135deg, #e50914, #ff5a5f);
+  border-radius: 22px;
+  padding: 22px;
+  color: white;
+  box-shadow: 0 10px 30px rgba(229, 9, 20, 0.3);
+}
+
+.priority-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.priority-top h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.priority-timer {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.priority-card .status-actions button {
+  background: white;
+  color: #111;
+}

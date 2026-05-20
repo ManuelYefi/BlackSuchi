@@ -1,0 +1,89 @@
+<div class="overlay" (click)="close()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2>{{ product.name }}</h2>
+        <p>{{ product.description }}</p>
+      </div>
+
+      <button type="button" class="close-btn" (click)="close()">✕</button>
+    </div>
+
+    @if (product.allowsProteinChange) {
+      <div class="section">
+        <h3>Cambio de proteína</h3>
+
+        <div class="extra-row">
+          <div class="extra-info">
+            <span>{{ PROTEIN_CHANGE_OPTION.name }}</span>
+            <small>+{{ PROTEIN_CHANGE_OPTION.price | currency:'CLP':'symbol':'1.0-0' }}</small>
+          </div>
+
+          <div class="extra-quantity">
+            <button type="button" (click)="decreaseProteinChange()">-</button>
+            <span>{{ getExtraQuantity(PROTEIN_CHANGE_OPTION.id) }}</span>
+            <button type="button" (click)="increaseProteinChange()">+</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <div class="section">
+      <h3>Extras</h3>
+
+      @for (extra of availableExtras; track extra.id) {
+        <div class="extra-row">
+          <div class="extra-info">
+            <span>{{ extra.name }} </span>
+            <small>+ {{ extra.price | currency:'CLP ':'symbol':'1.0-0' }}</small>
+          </div>
+
+          <div class="extra-quantity">
+            <button type="button" (click)="decreaseExtra(extra)">-</button>
+            <span>{{ getExtraQuantity(extra.id) }}</span>
+            <button type="button" (click)="increaseExtra(extra)">+</button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="section">
+      <h3>Salsas</h3>
+
+      <div class="sauce-list">
+        @for (sauce of availableSauces; track sauce) {
+          <div class="extra-row">
+            <div class="extra-info">
+              <span>{{ sauce }}</span>
+            </div>
+
+            <div class="extra-quantity">
+              <button type="button" (click)="decreaseSauce(sauce)">-</button>
+              <span>{{ getSauceQuantity(sauce) }}</span>
+              <button type="button" (click)="increaseSauce(sauce)">+</button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Notas</h3>
+      <textarea
+        rows="4"
+        placeholder="Ej: sin cebollín, cortar más pequeño..."
+        [value]="notes()"
+        (input)="notes.set($any($event.target).value)"
+      ></textarea>
+    </div>
+
+    <div class="summary">
+      <strong>Extras: {{ totalExtras() | currency:'CLP':'symbol':'1.0-0' }}</strong>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="secondary" (click)="close()">Cancelar</button>
+      <button type="button" class="primary" (click)="confirmSelection()">Agregar</button>
+    </div>
+  </div>
+</div>

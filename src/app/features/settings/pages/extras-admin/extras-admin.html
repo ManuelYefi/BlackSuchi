@@ -1,0 +1,70 @@
+<div class="page">
+  <div class="header">
+    <div>
+      <p class="eyebrow">Configuracion comercial</p>
+      <h1>Administrar extras</h1>
+      <p class="subtitle">Agrupa, revisa y ajusta precios sin perderte en una lista larga.</p>
+    </div>
+
+    <button type="button" class="reset-btn" (click)="resetExtras()">
+      Restaurar extras base
+    </button>
+  </div>
+
+  <div class="summary-grid">
+    <article class="summary-card">
+      <span>Total extras</span>
+      <strong>{{ totalExtras() }}</strong>
+    </article>
+
+    <article class="summary-card">
+      <span>Precio promedio</span>
+      <strong>{{ formatPrice(averagePrice()) }}</strong>
+    </article>
+  </div>
+
+  <div class="groups-grid">
+    @for (group of groupedExtras(); track group.id) {
+      <section class="group-panel" [class.premium]="group.accent === 'premium'">
+        <div class="group-header">
+          <div>
+            <p class="group-kicker">{{ group.extras.length }} extras</p>
+            <h2>{{ group.title }}</h2>
+            <p>{{ group.description }}</p>
+          </div>
+
+          <span class="group-pill">
+            {{ group.accent === 'premium' ? 'Mayor valor' : 'Rotacion alta' }}
+          </span>
+        </div>
+
+        <div class="extras-grid">
+          @for (extra of group.extras; track extra.id) {
+            <article class="extra-card">
+              <div class="extra-top">
+                <div>
+                  <h3>{{ extra.name }}</h3>
+                  <p>{{ extra.id }}</p>
+                </div>
+
+                <span class="price-chip">
+                  {{ formatPrice(extra.price) }}
+                </span>
+              </div>
+
+              <label class="price-editor">
+                <span>Editar precio</span>
+                <input
+                  type="number"
+                  min="0"
+                  [value]="extra.price"
+                  (change)="updatePrice(extra, $any($event.target).value)"
+                />
+              </label>
+            </article>
+          }
+        </div>
+      </section>
+    }
+  </div>
+</div>

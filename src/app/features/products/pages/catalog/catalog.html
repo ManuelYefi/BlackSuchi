@@ -1,0 +1,242 @@
+<div class="catalog-pos">
+  <aside class="categories-panel">
+    <div class="brand-box">
+      <div class="logo-circle">BS</div>
+      <div>
+        <h1>Black Sushi</h1>
+        <p>Pedidos iPad</p>
+      </div>
+    </div>
+
+    <nav class="category-list">
+      @for (category of categories(); track category) {
+        <button
+          type="button"
+          class="category-btn"
+          [class.active]="selectedCategory() === category"
+          (click)="selectCategory(category)"
+        >
+          {{ category }}
+        </button>
+      }
+    </nav>
+  </aside>
+
+  <main class="products-panel">
+    <div class="panel-header">
+      <div>
+        <h2>{{ selectedCategory() }}</h2>
+        <p>{{ filteredProducts().length }} productos</p>
+      </div>
+
+      <div class="header-right">
+        <div class="search-box">
+          <input
+            type="text"
+            placeholder="Buscar sushi..."
+            (input)="search.set($any($event.target).value)"
+          />
+        </div>
+
+        <div class="cart-summary-chip">
+          {{ cartCount() }} items
+        </div>
+      </div>
+    </div>
+
+    <div class="product-grid">
+      @for (product of filteredProducts(); track product.id) {
+        <article class="product-card">
+          <div class="product-content">
+            <h3>{{ product.name }}</h3>
+
+            @if (getDescriptionItems(product.description).length > 1) {
+              <ul class="product-description-list">
+                @for (item of getDescriptionItems(product.description); track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            } @else {
+              <p>{{ product.description }}</p>
+            }
+          </div>
+
+          <input
+            #noteInput
+            class="note-input"
+            type="text"
+            placeholder="Nota del producto..."
+          />
+
+          <div class="product-footer">
+            <strong>{{ product.price | currency:'CLP ':'symbol':'1.0-0' }}</strong>
+            <button type="button" (click)="openProductModal(product)">
+              Agregar
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  </main>
+
+  <aside class="cart-panel">
+    <div class="cart-header">
+      <h2>Pedido actual</h2>
+      <span>{{ cartCount() }} items</span>
+    </div>
+    <div class="service-mode-panel">
+      <h3>Origen del pedido</h3>
+    
+      <div class="channel-grid">
+        @for (channel of channels; track channel.id) {
+          <button
+            type="button"
+            class="channel-btn"
+            [class.active]="orderChannel() === channel.id"
+            (click)="setOrderChannel(channel.id)"
+          >
+            {{ channel.label }}
+          </button>
+        }
+      </div>
+    
+      @if (orderChannel() === 'mesa') {
+        <div class="field-block">
+          <label for="tableSelect">Mesa</label>
+          <select
+            id="tableSelect"
+            [value]="selectedTable() ?? ''"
+            (change)="setSelectedTable($any($event.target).value)"
+          >
+            @for (table of tables(); track table.id) {
+              @if (table.active) {
+                <option [value]="table.id">{{ table.name }}</option>
+              }
+            }
+          </select>
+        </div>
+      }
+    
+      <div class="field-block">
+        <label for="customerName">Nombre cliente</label>
+        <input
+          #customerNameInput
+          id="customerName"
+          type="text"
+          class="customer-name-input"
+          [class.error]="showCustomerNameError()"
+          [value]="customerName()"
+          (input)="updateCustomerName($any($event.target).value)"
+          placeholder="Ej: Manuel / Juan Pérez"
+        />
+
+        @if (showCustomerNameError()) {
+          <p class="field-warning">
+            Debes ingresar el nombre del cliente para confirmar el pedido.
+          </p>
+        }
+      </div>
+    </div>
+    
+      @if (orderType() === 'delivery') {
+        <div class="delivery-box">
+          <label>Costo Delivery</label>
+      
+          <input
+            type="number"
+            min="0"
+            [value]="deliveryFee()"
+            (input)="deliveryFee.set(+$any($event.target).value || 0)"
+          />
+      
+          <div class="quick-buttons">
+            <button (click)="deliveryFee.set(1000)">$1.000</button>
+            <button (click)="deliveryFee.set(1500)">$1.500</button>
+            <button (click)="deliveryFee.set(2000)">$2.000</button>
+          </div>
+        </div>
+      }
+    
+
+    @if (cartItems().length === 0) {
+      <div class="empty-cart">
+        <p>No hay productos en el pedido.</p>
+        <small>Agrega productos desde la carta.</small>
+      </div>
+    } @else {
+      <div class="cart-items">
+        @for (item of cartItems(); track item.uid) {
+          <div class="cart-item">
+            <div class="cart-item-info">
+              <h3>{{ item.name }}</h3>
+
+              @if (item.notes) {
+                <p class="item-notes">Nota: {{ item.notes }}</p>
+              }
+
+              @if (item.sauces?.length) {
+                <p class="item-notes">
+                  Salsas: {{ item.sauces!.map(x => x.name + (x.quantity > 1 ? ' x' + x.quantity : '')).join(', ') }}
+                </p>
+              }
+
+              <p>{{ item.subtotal | currency:'CLP':'symbol':'1.0-0' }}</p>
+            </div>
+
+            <div class="cart-item-actions">
+              <button type="button" (click)="decrease(item.uid)">−</button>
+              <span>{{ item.quantity }}</span>
+              <button type="button" (click)="increase(item.uid)">+</button>
+            </div>
+
+            <button
+  type="button"
+  class="remove-btn"
+  (click)="remove(item.uid)"
+>
+  Eliminar
+</button>
+          </div>
+        }
+      </div>
+
+      <div class="cart-footer">
+        <div class="summary-row">
+          <span>Subtotal productos</span>
+          <strong>{{ cartTotal() | currency:'CLP':'symbol':'1.0-0' }}</strong>
+        </div>
+      
+        @if (deliveryFee() > 0) {
+          <div class="summary-row">
+            <span>Delivery</span>
+            <strong>{{ deliveryFee() | currency:'CLP':'symbol':'1.0-0' }}</strong>
+          </div>
+        }
+      
+        <div class="total-row">
+          <span>Total final</span>
+          <strong>{{ (cartTotal() + deliveryFee()) | currency:'CLP':'symbol':'1.0-0' }}</strong>
+        </div>
+      
+        <button type="button" class="clear-btn" (click)="clearCart()">
+          Vaciar pedido
+        </button>
+      
+        <button
+          type="button"
+          class="confirm-btn"
+          (click)="confirmOrder()"
+        >
+          Confirmar pedido
+        </button>
+      </div>
+    }
+  </aside>
+</div>
+@if (selectedProduct(); as product) {
+  <app-product-detail-modal
+    [product]="product"
+    (closeModal)="closeProductModal()"
+    (confirm)="addToCartFromModal($event)"
+  />
+}

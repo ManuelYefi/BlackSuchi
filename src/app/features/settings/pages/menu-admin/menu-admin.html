@@ -1,0 +1,43 @@
+<div class="page">
+    <div class="header">
+      <div>
+        <h1>Administración del menú</h1>
+        <p>Editar precios y disponibilidad</p>
+      </div>
+  
+      <button type="button" class="reset-btn" (click)="resetMenu()">
+        Restaurar menú base
+      </button>
+    </div>
+  
+    <div class="product-list">
+      @for (product of products(); track product.id) {
+        <div class="product-card">
+          <div class="info">
+            <h3>{{ product.name }}</h3>
+            <p>{{ product.category }}</p>
+          </div>
+  
+          <div class="controls">
+            <label>
+              Precio
+              <input
+                type="number"
+                [value]="product.price"
+                (change)="updatePrice(product, $any($event.target).value)"
+              />
+            </label>
+  
+            <button
+              type="button"
+              class="toggle-btn"
+              [class.inactive]="!product.active"
+              (click)="toggleActive(product)"
+            >
+              {{ product.active ? 'Activo' : 'Inactivo' }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>

@@ -1,0 +1,32 @@
+<div class="page">
+    <div class="header">
+      <div>
+        <h1>Administración de mesas</h1>
+        <p>Activar o desactivar mesas disponibles</p>
+      </div>
+  
+      <button type="button" class="reset-btn" (click)="resetTables()">
+        Restaurar mesas
+      </button>
+    </div>
+  
+    <div class="table-list">
+      @for (table of tables(); track table.id) {
+        <div class="table-card">
+          <div>
+            <h3>{{ table.name }}</h3>
+            <p>Estado: {{ table.active ? 'Activa' : 'Inactiva' }}</p>
+          </div>
+  
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.inactive]="!table.active"
+            (click)="toggleTable(table)"
+          >
+            {{ table.active ? 'Activa' : 'Inactiva' }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>

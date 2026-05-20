@@ -1,0 +1,226 @@
+<div class="history-page">
+  <div class="history-header">
+    <div>
+      <h1>Historial de pedidos</h1>
+      <p>Consulta de pedidos con filtros y vistas</p>
+    </div>
+
+    <button type="button" class="refresh-btn" (click)="refreshOrders()">
+      Actualizar
+    </button>
+  </div>
+
+  <div class="history-filters">
+    <input
+      type="text"
+      placeholder="Buscar por cliente, mesa, canal, pedido o producto..."
+      [value]="search()"
+      (input)="updateSearch($any($event.target).value)"
+    />
+
+    <div class="toolbar-row">
+      <div class="view-filters">
+        <button
+          type="button"
+          [class.active]="viewMode() === 'today'"
+          (click)="setViewMode('today')"
+        >
+          Hoy
+        </button>
+        <button
+          type="button"
+          [class.active]="viewMode() === 'all'"
+          (click)="setViewMode('all')"
+        >
+          Todos
+        </button>
+        <button
+          type="button"
+          [class.active]="viewMode() === 'grouped'"
+          (click)="setViewMode('grouped')"
+        >
+          Agrupado por fecha
+        </button>
+      </div>
+
+      <div class="status-filters">
+        <button
+          type="button"
+          [class.active]="statusFilter() === 'todos'"
+          (click)="setStatusFilter('todos')"
+        >
+          Todos
+        </button>
+        <button
+          type="button"
+          [class.active]="statusFilter() === 'pendiente'"
+          (click)="setStatusFilter('pendiente')"
+        >
+          Pendiente
+        </button>
+        <button
+          type="button"
+          [class.active]="statusFilter() === 'en_preparacion'"
+          (click)="setStatusFilter('en_preparacion')"
+        >
+          Preparando
+        </button>
+        <button
+          type="button"
+          [class.active]="statusFilter() === 'listo'"
+          (click)="setStatusFilter('listo')"
+        >
+          Listo
+        </button>
+        <button
+          type="button"
+          [class.active]="statusFilter() === 'entregado'"
+          (click)="setStatusFilter('entregado')"
+        >
+          Entregado
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (viewMode() === 'today') {
+    <section class="grouped-section">
+      <div class="section-title">
+        <h2>Pedidos de hoy</h2>
+        <span>{{ todayOrders().length }} pedidos</span>
+      </div>
+
+      @if (todayOrders().length === 0) {
+        <div class="empty-box">
+          <p>No hay pedidos hoy.</p>
+        </div>
+      } @else {
+        <div class="group-orders">
+          @for (order of todayOrders(); track order.id) {
+            <article class="order-card highlighted">
+              <div class="order-card-top">
+                <h4>#{{ order.id.slice(-6) }}</h4>
+                <span class="status-badge">{{ order.status | titlecase }}</span>
+              </div>
+
+              <p><strong>Canal:</strong> {{ getChannelLabel(order.orderChannel) }}</p>
+              <p><strong>Tipo:</strong> {{ order.orderType | titlecase }}</p>
+
+              @if (order.tableNumber) {
+                <p><strong>Mesa:</strong> {{ order.tableNumber }}</p>
+              }
+
+              @if (order.customerName) {
+                <p><strong>Cliente:</strong> {{ order.customerName }}</p>
+              }
+
+              <p><strong>Total:</strong> {{ order.total | currency:'CLP':'symbol':'1.0-0' }}</p>
+              <p><strong>Hora:</strong> {{ order.createdAt | date:'HH:mm' }}</p>
+
+              <button type="button" (click)="printOrder(order)">
+                Imprimir comanda
+              </button>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  @if (viewMode() === 'all') {
+    <section class="grouped-section">
+      <div class="section-title">
+        <h2>Todos los pedidos</h2>
+        <span>{{ filteredOrders().length }} resultados</span>
+      </div>
+
+      @if (filteredOrders().length === 0) {
+        <div class="empty-box">
+          <p>No hay pedidos que coincidan con la búsqueda.</p>
+        </div>
+      } @else {
+        <div class="group-orders">
+          @for (order of filteredOrders(); track order.id) {
+            <article class="order-card">
+              <div class="order-card-top">
+                <h4>#{{ order.id.slice(-6) }}</h4>
+                <span class="status-badge">{{ order.status | titlecase }}</span>
+              </div>
+
+              <p><strong>Canal:</strong> {{ getChannelLabel(order.orderChannel) }}</p>
+              <p><strong>Tipo:</strong> {{ order.orderType | titlecase }}</p>
+
+              @if (order.tableNumber) {
+                <p><strong>Mesa:</strong> {{ order.tableNumber }}</p>
+              }
+
+              @if (order.customerName) {
+                <p><strong>Cliente:</strong> {{ order.customerName }}</p>
+              }
+
+              <p><strong>Total:</strong> {{ order.total | currency:'CLP':'symbol':'1.0-0' }}</p>
+              <p><strong>Fecha:</strong> {{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+
+              <button type="button" (click)="printOrder(order)">
+                Imprimir comanda
+              </button>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  @if (viewMode() === 'grouped') {
+    <section class="grouped-section">
+      <div class="section-title">
+        <h2>Historial agrupado por fecha</h2>
+        <span>{{ filteredOrders().length }} resultados</span>
+      </div>
+
+      @if (groupedOrders().length === 0) {
+        <div class="empty-box">
+          <p>No hay pedidos que coincidan con la búsqueda.</p>
+        </div>
+      } @else {
+        @for (group of groupedOrders(); track group.dateKey) {
+          <div class="date-group">
+            <div class="date-group-header">
+              <h3>{{ group.label }}</h3>
+              <span>{{ group.orders.length }} pedidos</span>
+            </div>
+
+            <div class="group-orders">
+              @for (order of group.orders; track order.id) {
+                <article class="order-card">
+                  <div class="order-card-top">
+                    <h4>#{{ order.id.slice(-6) }}</h4>
+                    <span class="status-badge">{{ order.status | titlecase }}</span>
+                  </div>
+
+                  <p><strong>Canal:</strong> {{ getChannelLabel(order.orderChannel) }}</p>
+                  <p><strong>Tipo:</strong> {{ order.orderType | titlecase }}</p>
+
+                  @if (order.tableNumber) {
+                    <p><strong>Mesa:</strong> {{ order.tableNumber }}</p>
+                  }
+
+                  @if (order.customerName) {
+                    <p><strong>Cliente:</strong> {{ order.customerName }}</p>
+                  }
+
+                  <p><strong>Total:</strong> {{ order.total | currency:'CLP':'symbol':'1.0-0' }}</p>
+                  <p><strong>Fecha:</strong> {{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+
+                  <button type="button" (click)="printOrder(order)">
+                    Imprimir comanda
+                  </button>
+                </article>
+              }
+            </div>
+          </div>
+        }
+      }
+    </section>
+  }
+</div>

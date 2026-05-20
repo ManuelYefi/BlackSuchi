@@ -1,0 +1,281 @@
+<div class="dashboard">
+    <div class="dashboard-header">
+      <div>
+        <h1>Dashboard Black Sushi</h1>
+        <p>Resumen por canal y producto</p>
+      </div>
+  
+      <div class="header-actions">
+        <div class="range-filters">
+          <button
+            type="button"
+            [class.active]="selectedRange() === 'today'"
+            (click)="setRange('today')"
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            [class.active]="selectedRange() === 'yesterday'"
+            (click)="setRange('yesterday')"
+          >
+            Ayer
+          </button>
+          <button
+            type="button"
+            [class.active]="selectedRange() === 'last7days'"
+            (click)="setRange('last7days')"
+          >
+            7 días
+          </button>
+          <button
+            type="button"
+            [class.active]="selectedRange() === 'thisMonth'"
+            (click)="setRange('thisMonth')"
+          >
+            Mes
+          </button>
+        </div>
+  
+        <button type="button" class="refresh-btn" (click)="refreshDashboard()">
+          Actualizar
+        </button>
+
+        <button
+          type="button"
+          class="reset-month-btn"
+          (click)="resetCurrentMonthData()"
+        >
+          Reiniciar mes actual
+        </button>
+      </div>
+    </div>
+  
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>Pedidos</h3>
+        <p>{{ filteredOrders().length }}</p>
+        <small>{{ getRangeLabel() }}</small>
+      </div>
+  
+      <div class="stat-card">
+        <h3>Ventas</h3>
+        <p>{{ totalSales() | currency:'CLP':'symbol':'1.0-0' }}</p>
+        <small>{{ getRangeLabel() }}</small>
+      </div>
+  
+      <div class="stat-card">
+        <h3>Ticket Promedio</h3>
+        <p>{{ averageTicket() | currency:'CLP':'symbol':'1.0-0' }}</p>
+        <small>{{ getRangeLabel() }}</small>
+      </div>
+  
+      <div class="stat-card">
+        <h3>Canal Top</h3>
+        <p>
+          @if (topChannel(); as channel) {
+            {{ channel.label }}
+          } @else {
+            Sin ventas
+          }
+        </p>
+      </div>
+  
+      <div class="stat-card">
+        <h3>Producto Top</h3>
+        <p>
+          @if (topProduct(); as product) {
+            {{ product.name }}
+          } @else {
+            Sin ventas
+          }
+        </p>
+      </div>
+    </div>
+
+    <div class="insights-grid">
+      <section class="insight-panel spotlight-panel">
+        <div class="section-title">
+          <h2>Cuadratura del Mes</h2>
+          <span>Mes en curso</span>
+        </div>
+
+        @if (currentMonthSnapshot(); as month) {
+          <div class="spotlight-metric">
+            <span>Ventas del mes</span>
+            <strong>{{ month.totalSales | currency:'CLP':'symbol':'1.0-0' }}</strong>
+          </div>
+
+          <div class="spotlight-details">
+            <div>
+              <small>Periodo</small>
+              <p>{{ month.label }}</p>
+            </div>
+
+            <div>
+              <small>Pedidos</small>
+              <p>{{ month.ordersCount }}</p>
+            </div>
+          </div>
+        } @else {
+          <div class="empty-box">
+            <p>No hay data cargada para el mes en curso.</p>
+          </div>
+        }
+      </section>
+
+      <section class="insight-panel trend-panel">
+        <div class="section-title">
+          <h2>Tendencia de Ventas</h2>
+          <span>{{ getRangeLabel() }}</span>
+        </div>
+
+        @if (salesTrend().length === 0) {
+          <div class="empty-box">
+            <p>No hay movimientos para graficar en este rango.</p>
+          </div>
+        } @else {
+          <div class="trend-chart">
+            @for (point of salesTrend(); track point.label) {
+              <div class="trend-row">
+                <div class="trend-meta">
+                  <strong>{{ point.label }}</strong>
+                  <small>{{ point.ordersCount }} pedidos</small>
+                </div>
+
+                <div class="trend-bar-track">
+                  <div
+                    class="trend-bar-fill"
+                    [style.width.%]="getTrendWidth(point.totalSales)"
+                  ></div>
+                </div>
+
+                <div class="trend-value">
+                  {{ point.totalSales | currency:'CLP':'symbol':'1.0-0' }}
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    </div>
+
+    <div class="monthly-section">
+      <div class="section-title">
+        <h2>Historial Mensual</h2>
+        <span>Separado para cuadraturas</span>
+      </div>
+
+      @if (monthlySnapshots().length === 0) {
+        <div class="empty-box">
+          <p>No hay meses registrados todavía.</p>
+        </div>
+      } @else {
+        <div class="monthly-grid">
+          @for (month of monthlySnapshots(); track month.monthKey) {
+            <article class="monthly-card" [class.current]="currentMonthSnapshot()?.monthKey === month.monthKey">
+              <div class="monthly-top">
+                <h3>{{ month.label }}</h3>
+                <span>{{ month.ordersCount }} pedidos</span>
+              </div>
+
+              <strong>{{ month.totalSales | currency:'CLP':'symbol':'1.0-0' }}</strong>
+            </article>
+          }
+        </div>
+      }
+    </div>
+  
+    <div class="channel-section">
+      <div class="section-title">
+        <h2>Ventas por canal</h2>
+        <span>{{ getRangeLabel() }}</span>
+      </div>
+  
+      <div class="channel-grid">
+        @for (item of channelSummary(); track item.channel) {
+          <div class="channel-card">
+            <div class="channel-card-top">
+              <h3>{{ item.label }}</h3>
+              <span>{{ item.ordersCount }} pedidos</span>
+            </div>
+  
+            <div class="channel-amount">
+              {{ item.totalSales | currency:'CLP':'symbol':'1.0-0' }}
+            </div>
+  
+            <div class="channel-bar-track">
+              <div
+                class="channel-bar-fill"
+                [style.width.%]="totalSales() > 0 ? (item.totalSales / totalSales()) * 100 : 0"
+              ></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  
+    <div class="products-section">
+      <div class="section-title">
+        <h2>Top productos</h2>
+        <span>{{ getRangeLabel() }}</span>
+      </div>
+  
+      @if (productSummary().length === 0) {
+        <div class="empty-box">
+          <p>No hay ventas para este rango.</p>
+        </div>
+      } @else {
+        <div class="products-table">
+          <div class="table-head">
+            <span>Producto</span>
+            <span>Unidades</span>
+            <span>Facturación</span>
+          </div>
+  
+          @for (product of productSummary(); track product.productId) {
+            <div class="table-row">
+              <span>{{ product.name }}</span>
+              <span>{{ product.quantity }}</span>
+              <span>{{ product.totalSales | currency:'CLP':'symbol':'1.0-0' }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  
+    <div class="orders-section">
+      <div class="section-title">
+        <h2>Pedidos recientes</h2>
+        <span>{{ getRangeLabel() }}</span>
+      </div>
+  
+      @if (filteredOrders().length === 0) {
+        <div class="empty-box">
+          <p>No hay pedidos para este rango.</p>
+        </div>
+      } @else {
+        <div class="orders-table">
+          <div class="table-head orders-head">
+            <span>Pedido</span>
+            <span>Canal</span>
+            <span>Tipo</span>
+            <span>Total</span>
+            <span>Hora</span>
+            <span>Estado</span>
+          </div>
+  
+          @for (order of filteredOrders(); track order.id) {
+            <div class="table-row orders-row">
+              <span>#{{ order.id.slice(-6) }}</span>
+              <span>{{ getChannelLabel(order.orderChannel) }}</span>
+              <span>{{ order.orderType | titlecase }}</span>
+              <span>{{ order.total | currency:'CLP':'symbol':'1.0-0' }}</span>
+              <span>{{ order.createdAt | date:'HH:mm' }}</span>
+              <span>{{ order.status | titlecase }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>

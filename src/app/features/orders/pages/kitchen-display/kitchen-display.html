@@ -1,0 +1,231 @@
+<div class="kitchen-page">
+  <div class="kitchen-header">
+    <div>
+      <h1>Cocina Black Sushi</h1>
+      <p>Pedidos operativos del día</p>
+    </div>
+  </div>
+  <section class="priority-section">
+    <div class="section-header">
+      <h2>🔥 Siguiente pedido</h2>
+    </div>
+  
+    @if (nextOrder(); as order) {
+      <article class="priority-card">
+        <div class="priority-top">
+          <h2>#{{ order.id.slice(-6) }}</h2>
+          <span class="priority-timer">
+            {{ getElapsedLabel(order.createdAt) }}
+          </span>
+        </div>
+  
+        <p><strong>Canal:</strong> {{ getChannelLabel(order.orderChannel) }}</p>
+        <p><strong>Tipo:</strong> {{ order.orderType | titlecase }}</p>
+  
+        @if (order.tableNumber) {
+          <p><strong>Mesa:</strong> {{ order.tableNumber }}</p>
+        }
+  
+        <div class="items">
+          @for (item of order.items; track item.uid) {
+            <div class="item-row">
+              <strong>{{ item.quantity }}x {{ item.name }}</strong>
+            </div>
+          }
+        </div>
+
+        @if (getSauceLines(order).length) {
+          <div class="items">
+            <p><strong>Salsas</strong></p>
+            @for (line of getSauceLines(order); track line) {
+              <div class="item-row">{{ line }}</div>
+            }
+          </div>
+        }
+  
+        <div class="status-actions">
+          <button (click)="updateStatus(order.id, 'en_preparacion')">
+            Preparando
+          </button>
+  
+          <button (click)="updateStatus(order.id, 'listo')">
+            Listo
+          </button>
+        </div>
+      </article>
+    } @else {
+      <div class="empty-box">
+        <p>No hay pedidos pendientes 🎉</p>
+      </div>
+    }
+  </section>
+  <section class="kitchen-section">
+    <div class="section-header">
+      <h2>Por hacer hoy</h2>
+      <span>{{ activeTodayOrders().length }} pedidos</span>
+    </div>
+
+    @if (activeTodayOrders().length === 0) {
+      <div class="empty-box">
+        <p>No hay pedidos pendientes o en preparación para hoy.</p>
+      </div>
+    } @else {
+      <div class="kitchen-grid">
+        @for (order of activeTodayOrders(); track order.id) {
+          <article class="kitchen-card active-card">
+            <div class="card-top">
+              <h2>#{{ order.id.slice(-6) }}</h2>
+              <span class="status">{{ order.status | titlecase }}</span>
+            </div>
+
+            <p><strong>Canal:</strong> {{ getChannelLabel(order.orderChannel) }}</p>
+            <p><strong>Tipo:</strong> {{ order.orderType | titlecase }}</p>
+            <p>
+              <strong>Tiempo:</strong>
+              {{ getElapsedLabel(order.createdAt) }}
+            </p>
+
+            @if (order.tableNumber) {
+              <p><strong>Mesa:</strong> {{ order.tableNumber }}</p>
+            }
+
+            @if (order.customerName) {
+              <p><strong>Cliente:</strong> {{ order.customerName }}</p>
+            }
+
+            <div class="items">
+              @for (item of order.items; track item.uid) {
+                <div class="item-row">
+                  <strong>{{ item.quantity }}x {{ item.name }}</strong>
+
+                  @if (item.extras?.length) {
+                    <ul>
+                      @for (extra of item.extras; track extra.id) {
+                        <li>{{ extra.name }}</li>
+                      }
+                    </ul>
+                  }
+
+                  @if (item.sauces?.length) {
+                    <small>
+                      Salsas: {{ item.sauces!.map(x => x.name + (x.quantity > 1 ? ' x' + x.quantity : '')).join(', ') }}
+                    </small>
+                  }
+
+                  @if (item.notes) {
+                    <small>Nota: {{ item.notes }}</small>
+                  }
+                </div>
+              }
+            </div>
+
+            @if (getSauceLines(order).length) {
+              <div class="items">
+                <p><strong>Salsas del pedido</strong></p>
+                @for (line of getSauceLines(order); track line) {
+                  <div class="item-row">{{ line }}</div>
+                }
+              </div>
+            }
+
+            <div class="status-actions">
+              <button type="button" (click)="updateStatus(order.id, 'pendiente')">Pendiente</button>
+              <button type="button" (click)="updateStatus(order.id, 'en_preparacion')">Preparando</button>
+              <button type="button" (click)="updateStatus(order.id, 'listo')">Listo</button>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="kitchen-section">
+    <div class="section-header">
+      <h2>Listos de hoy</h2>
+      <span>{{ readyTodayOrders().length }} pedidos</span>
+    </div>
+
+    @if (readyTodayOrders().length === 0) {
+      <div class="empty-box">
+        <p>No hay pedidos listos hoy.</p>
+      </div>
+    } @else {
+      <div class="kitchen-grid">
+        @for (order of readyTodayOrders(); track order.id) {
+          <article class="kitchen-card ready-card">
+            <div class="card-top">
+              <h2>#{{ order.id.slice(-6) }}</h2>
+              <span class="status">{{ order.status | titlecase }}</span>
+            </div>
+
+            <p><strong>Canal:</strong> {{ getChannelLabel(order.orderChannel) }}</p>
+            <p><strong>Tipo:</strong> {{ order.orderType | titlecase }}</p>
+            <p><strong>Hora:</strong> {{ order.createdAt | date:'HH:mm' }}</p>
+
+            @if (order.tableNumber) {
+              <p><strong>Mesa:</strong> {{ order.tableNumber }}</p>
+            }
+
+            @if (order.customerName) {
+              <p><strong>Cliente:</strong> {{ order.customerName }}</p>
+            }
+
+            <div class="items">
+              @for (item of order.items; track item.uid) {
+                <div class="item-row">
+                  <strong>{{ item.quantity }}x {{ item.name }}</strong>
+                </div>
+              }
+            </div>
+
+            @if (getSauceLines(order).length) {
+              <div class="items">
+                <p><strong>Salsas del pedido</strong></p>
+                @for (line of getSauceLines(order); track line) {
+                  <div class="item-row">{{ line }}</div>
+                }
+              </div>
+            }
+
+            <div class="status-actions">
+              <button type="button" (click)="updateStatus(order.id, 'en_preparacion')">Volver a preparación</button>
+              <button type="button" (click)="updateStatus(order.id, 'entregado')">Entregado</button>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="kitchen-section">
+    <div class="section-header">
+      <h2>Pedidos anteriores</h2>
+      <button type="button" class="toggle-btn" (click)="togglePreviousOrders()">
+        {{ showPreviousOrders() ? 'Ocultar' : 'Mostrar' }}
+      </button>
+    </div>
+
+    @if (showPreviousOrders()) {
+      @if (previousOrders().length === 0) {
+        <div class="empty-box">
+          <p>No hay pedidos anteriores.</p>
+        </div>
+      } @else {
+        <div class="kitchen-grid">
+          @for (order of previousOrders(); track order.id) {
+            <article class="kitchen-card previous-card">
+              <div class="card-top">
+                <h2>#{{ order.id.slice(-6) }}</h2>
+                <span class="status">{{ order.status | titlecase }}</span>
+              </div>
+
+              <p><strong>Canal:</strong> {{ getChannelLabel(order.orderChannel) }}</p>
+              <p><strong>Tipo:</strong> {{ order.orderType | titlecase }}</p>
+              <p><strong>Fecha:</strong> {{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+            </article>
+          }
+        </div>
+      }
+    }
+  </section>
+</div>

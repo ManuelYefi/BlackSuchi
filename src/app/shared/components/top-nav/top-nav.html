@@ -1,0 +1,24 @@
+<header class="top-nav">
+    <div class="brand">
+      <div class="logo">BS</div>
+      <div class="brand-text">
+        <h1>Black Sushi</h1>
+        <p>POS iPad</p>
+      </div>
+    </div>
+  
+    <nav class="nav-links">
+      <a routerLink="/catalogo" routerLinkActive="active">Carta</a>
+      <a routerLink="/cocina" routerLinkActive="active">Cocina</a>
+      <a routerLink="/historial" routerLinkActive="active">Historial</a>
+      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/menu-admin" routerLinkActive="active">Menú</a>
+      <a routerLink="/extras-admin" routerLinkActive="active">Extras</a>
+      <a routerLink="/mesas-admin" routerLinkActive="active">Mesas</a>
+    </nav>
+  
+    <div class="role-box">
+      <span>Rol</span>
+      <strong>{{ role | titlecase }}</strong>
+    </div>
+  </header>

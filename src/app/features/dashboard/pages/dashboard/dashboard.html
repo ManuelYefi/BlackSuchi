@@ -63,6 +63,18 @@
         <p>{{ totalSales() | currency:'CLP':'symbol':'1.0-0' }}</p>
         <small>{{ getRangeLabel() }}</small>
       </div>
+
+      <div class="stat-card">
+        <h3>Gastos</h3>
+        <p>{{ totalExpenses() | currency:'CLP':'symbol':'1.0-0' }}</p>
+        <small>{{ getRangeLabel() }}</small>
+      </div>
+
+      <div class="stat-card">
+        <h3>Resultado Neto</h3>
+        <p>{{ netSales() | currency:'CLP':'symbol':'1.0-0' }}</p>
+        <small>Ventas - gastos</small>
+      </div>
   
       <div class="stat-card">
         <h3>Ticket Promedio</h3>
@@ -104,6 +116,16 @@
           <div class="spotlight-metric">
             <span>Ventas del mes</span>
             <strong>{{ month.totalSales | currency:'CLP':'symbol':'1.0-0' }}</strong>
+          </div>
+
+          <div class="spotlight-metric secondary">
+            <span>Gastos del mes</span>
+            <strong>{{ currentMonthExpenses() | currency:'CLP':'symbol':'1.0-0' }}</strong>
+          </div>
+
+          <div class="spotlight-metric accent">
+            <span>Resultado neto</span>
+            <strong>{{ (month.totalSales - currentMonthExpenses()) | currency:'CLP':'symbol':'1.0-0' }}</strong>
           </div>
 
           <div class="spotlight-details">
@@ -213,6 +235,35 @@
           </div>
         }
       </div>
+    </div>
+
+    <div class="delivery-section">
+      <div class="section-title">
+        <h2>Delivery por día</h2>
+        <span>Conteo y sumatoria diaria</span>
+      </div>
+
+      @if (deliveryDailySummary().length === 0) {
+        <div class="empty-box">
+          <p>No hay deliveries registrados en este rango.</p>
+        </div>
+      } @else {
+        <div class="delivery-table">
+          <div class="table-head delivery-head">
+            <span>Fecha</span>
+            <span>Pedidos delivery</span>
+            <span>Total vendido</span>
+          </div>
+
+          @for (day of deliveryDailySummary(); track day.dateKey) {
+            <div class="table-row delivery-row">
+              <span>{{ day.label }}</span>
+              <span>{{ day.ordersCount }}</span>
+              <span>{{ day.totalSales | currency:'CLP':'symbol':'1.0-0' }}</span>
+            </div>
+          }
+        </div>
+      }
     </div>
   
     <div class="products-section">

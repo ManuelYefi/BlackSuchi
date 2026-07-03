@@ -8,6 +8,7 @@ import { SettingsComponent } from './features/settings/pages/settings/settings';
 import { KitchenDisplayComponent } from './features/orders/pages/kitchen-display/kitchen-display';
 import { MenuAdminComponent } from './features/settings/pages/menu-admin/menu-admin';
 import { DashboardComponent } from './features/dashboard/pages/dashboard/dashboard';
+import { AdminDataComponent } from './features/dashboard/pages/admin-data/admin-data';
 import { ExtrasAdminComponent } from './features/settings/pages/extras-admin/extras-admin';
 import { TablesAdminComponent } from './features/settings/pages/tables-admin/tables-admin';
 
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: 'cocina', component: KitchenDisplayComponent },
   { path: 'menu-admin', component: MenuAdminComponent },
   { path: 'dashboard', component: DashboardComponent },
+  { path: 'datos-admin', component: AdminDataComponent },
   { path: 'extras-admin', component: ExtrasAdminComponent },
   { path: 'mesas-admin', component: TablesAdminComponent },
   { path: '**', redirectTo: 'catalogo' },

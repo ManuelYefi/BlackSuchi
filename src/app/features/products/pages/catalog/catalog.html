@@ -23,6 +23,14 @@
   </aside>
 
   <main class="products-panel">
+    @if (menuLoading()) {
+      <p class="menu-status">Cargando menú desde MySQL local...</p>
+    }
+
+    @if (menuError(); as errorMessage) {
+      <p class="menu-status warning">{{ errorMessage }}</p>
+    }
+
     <div class="panel-header">
       <div>
         <h2>{{ selectedCategory() }}</h2>
@@ -44,6 +52,116 @@
       </div>
     </div>
 
+    <section class="quick-picks">
+      <div class="quick-picks-header">
+        <div>
+          <h3>Selección rápida</h3>
+          <p>Los productos más pedidos para acelerar la toma.</p>
+        </div>
+      </div>
+
+      <div class="quick-picks-row">
+        @for (product of frequentProducts(); track product.id) {
+          <button
+            type="button"
+            class="quick-pick-card"
+            (click)="quickAddProduct(product)"
+          >
+            <strong>{{ product.name }}</strong>
+            <span>{{ product.price | currency:'CLP ':'symbol':'1.0-0' }}</span>
+          </button>
+        }
+      </div>
+    </section>
+
+    @if (selectedCategory() === 'Roll Sin Arroz' && repeatedCustomSinArrozPresets().length > 0) {
+      <section class="sin-arroz-history">
+        <div class="quick-picks-header">
+          <div>
+            <h3>Sin Arroz más repetidos</h3>
+            <p>Memoria rápida de los personalizados que más salen para repetirlos o tomarlos como base.</p>
+          </div>
+        </div>
+
+        <div class="sin-arroz-history-grid">
+          @for (preset of repeatedCustomSinArrozPresets(); track preset.id) {
+            <article class="sin-arroz-history-card">
+              <div class="history-card-top">
+                <strong>{{ preset.basePrice | currency:'CLP ':'symbol':'1.0-0' }}</strong>
+                <span>{{ preset.count }} veces</span>
+              </div>
+
+              <p class="history-card-description">{{ preset.description }}</p>
+
+              @if (preset.extras.length > 0) {
+                <p class="history-card-extras">
+                  Extras: {{ preset.extras.map(extra => extra.name + (extra.quantity > 1 ? ' x' + extra.quantity : '')).join(', ') }}
+                </p>
+              }
+
+              <small>Último: {{ preset.lastOrderedAt | date:'dd/MM HH:mm' }}</small>
+
+              <div class="history-card-actions">
+                <button type="button" class="quick-add-btn" (click)="repeatCustomSinArrozPreset(preset)">
+                  Repetir
+                </button>
+                <button type="button" (click)="customizeCustomSinArrozPreset(preset)">
+                  Usar base
+                </button>
+                <button type="button" (click)="createProductFromCustomSinArrozPreset(preset)">
+                  Agregar como nuevo
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+    }
+
+    @if (selectedCategory() !== 'Roll Sin Arroz' && repeatedModifiedRollPresets().length > 0) {
+      <section class="sin-arroz-history">
+        <div class="quick-picks-header">
+          <div>
+            <h3>Rolls modificados que más se repiten</h3>
+            <p>Atajos para cambios frecuentes de esta categoría, como reemplazos de ingredientes o proteína.</p>
+          </div>
+        </div>
+
+        <div class="sin-arroz-history-grid">
+          @for (preset of repeatedModifiedRollPresets(); track preset.id) {
+            <article class="sin-arroz-history-card">
+              <div class="history-card-top">
+                <strong>{{ preset.productName }}</strong>
+                <span>{{ preset.count }} veces</span>
+              </div>
+
+              <p class="history-card-description">{{ preset.description }}</p>
+
+              @if (preset.extras.length > 0) {
+                <p class="history-card-extras">
+                  Extras: {{ preset.extras.map(extra => extra.name + (extra.quantity > 1 ? ' x' + extra.quantity : '')).join(', ') }}
+                </p>
+              }
+
+              <small>{{ preset.basePrice | currency:'CLP ':'symbol':'1.0-0' }}</small>
+
+              <div class="history-card-actions">
+                <button type="button" class="quick-add-btn" (click)="repeatModifiedRollPreset(preset)">
+                  Repetir
+                </button>
+                <button type="button" (click)="customizeModifiedRollPreset(preset)">
+                  Usar base
+                </button>
+                <button type="button" (click)="createProductFromModifiedRollPreset(preset)">
+                  Agregar como nuevo
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+    }
+
     <div class="product-grid">
       @for (product of filteredProducts(); track product.id) {
         <article class="product-card">
@@ -61,18 +179,24 @@
             }
           </div>
 
-          <input
-            #noteInput
-            class="note-input"
-            type="text"
-            placeholder="Nota del producto..."
-          />
-
           <div class="product-footer">
-            <strong>{{ product.price | currency:'CLP ':'symbol':'1.0-0' }}</strong>
-            <button type="button" (click)="openProductModal(product)">
-              Agregar
-            </button>
+            <strong>
+              @if (isCustomPriceProduct(product)) {
+                Precio abierto
+              } @else {
+                {{ product.price | currency:'CLP ':'symbol':'1.0-0' }}
+              }
+            </strong>
+            <div class="product-actions">
+              @if (!requiresConfiguration(product)) {
+                <button type="button" class="quick-add-btn" (click)="quickAddProduct(product)">
+                  Rápido
+                </button>
+              }
+              <button type="button" (click)="openQuickCustomize(product)">
+                {{ isCustomPriceProduct(product) ? 'Crear roll' : 'Personalizar' }}
+              </button>
+            </div>
           </div>
         </article>
       }
@@ -136,6 +260,61 @@
           </p>
         }
       </div>
+
+      <div class="field-block">
+        <label for="chopsticksCount">Palitos del pedido</label>
+        <input
+          #chopsticksCountInput
+          id="chopsticksCount"
+          type="number"
+          min="0"
+          class="customer-name-input"
+          [class.error]="showChopsticksError()"
+          [value]="chopsticksCount() ?? ''"
+          (input)="updateChopsticksCount($any($event.target).value)"
+          placeholder="0"
+        />
+
+        @if (showChopsticksError()) {
+          <p class="field-warning">
+            Debes ingresar la cantidad de palitos antes de confirmar el pedido.
+          </p>
+        }
+
+        <div class="quick-buttons">
+          <button type="button" (click)="setChopsticksCount(0)">Sin palitos</button>
+          <button type="button" (click)="setChopsticksCount(2)">2</button>
+          <button type="button" (click)="setChopsticksCount(4)">4</button>
+          <button type="button" (click)="setChopsticksCount(6)">6</button>
+        </div>
+      </div>
+
+      <div class="field-block sauces-block">
+        <div class="field-heading">
+          <label>Salsas del pedido</label>
+          <small>Acevichada +{{ 700 | currency:'CLP':'symbol':'1.0-0' }} · Extra +{{ 500 | currency:'CLP':'symbol':'1.0-0' }}</small>
+        </div>
+
+        <div class="order-sauce-list">
+          @for (sauce of availableSauces; track sauce) {
+            <div class="order-sauce-row">
+              <span>{{ sauce }}</span>
+
+              <div class="sauce-quantity">
+                <button type="button" (click)="decreaseSauce(sauce)">-</button>
+                <strong>{{ getSauceQuantity(sauce) }}</strong>
+                <button type="button" (click)="increaseSauce(sauce)">+</button>
+              </div>
+
+              <div class="sauce-presets">
+                <button type="button" (click)="setSauceQuantity(sauce, 1)">x1</button>
+                <button type="button" (click)="setSauceQuantity(sauce, 2)">x2</button>
+                <button type="button" (click)="setSauceQuantity(sauce, 4)">x4</button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
     </div>
     
       @if (orderType() === 'delivery') {
@@ -174,10 +353,8 @@
                 <p class="item-notes">Nota: {{ item.notes }}</p>
               }
 
-              @if (item.sauces?.length) {
-                <p class="item-notes">
-                  Salsas: {{ item.sauces!.map(x => x.name + (x.quantity > 1 ? ' x' + x.quantity : '')).join(', ') }}
-                </p>
+              @if (item.description) {
+                <p class="item-description-preview">{{ item.description }}</p>
               }
 
               <p>{{ item.subtotal | currency:'CLP':'symbol':'1.0-0' }}</p>
@@ -196,6 +373,13 @@
 >
   Eliminar
 </button>
+            <button
+              type="button"
+              class="edit-btn"
+              (click)="editCartItem(item)"
+            >
+              Editar
+            </button>
           </div>
         }
       </div>
@@ -205,6 +389,13 @@
           <span>Subtotal productos</span>
           <strong>{{ cartTotal() | currency:'CLP':'symbol':'1.0-0' }}</strong>
         </div>
+
+        @if (sauceCharge() > 0) {
+          <div class="summary-row">
+            <span>Salsas</span>
+            <strong>{{ sauceCharge() | currency:'CLP':'symbol':'1.0-0' }}</strong>
+          </div>
+        }
       
         @if (deliveryFee() > 0) {
           <div class="summary-row">
@@ -215,7 +406,7 @@
       
         <div class="total-row">
           <span>Total final</span>
-          <strong>{{ (cartTotal() + deliveryFee()) | currency:'CLP':'symbol':'1.0-0' }}</strong>
+          <strong>{{ (cartTotal() + sauceCharge() + deliveryFee()) | currency:'CLP':'symbol':'1.0-0' }}</strong>
         </div>
       
         <button type="button" class="clear-btn" (click)="clearCart()">
@@ -236,6 +427,7 @@
 @if (selectedProduct(); as product) {
   <app-product-detail-modal
     [product]="product"
+    [existingItem]="editingItem() ?? prefillItem()"
     (closeModal)="closeProductModal()"
     (confirm)="addToCartFromModal($event)"
   />

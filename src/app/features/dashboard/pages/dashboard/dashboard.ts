@@ -1,5 +1,7 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Expense } from '../../../../core/models/expense.model';
+import { ExpensesService } from '../../../../core/services/expenses.service';
 import { Order } from '../../../../core/models/order.model';
 import { OrderHistoryService } from '../../../../core/services/order-history.service';
 
@@ -30,6 +32,13 @@ type MonthlySnapshot = {
   ordersCount: number;
 };
 
+type DeliveryDailySummary = {
+  dateKey: string;
+  label: string;
+  ordersCount: number;
+  totalSales: number;
+};
+
 type RangeFilter = 'today' | 'yesterday' | 'last7days' | 'thisMonth';
 
 @Component({
@@ -39,14 +48,27 @@ type RangeFilter = 'today' | 'yesterday' | 'last7days' | 'thisMonth';
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   private readonly historyService = inject(OrderHistoryService);
+  private readonly expensesService = inject(ExpensesService);
 
-  protected readonly orders = signal<Order[]>(this.historyService.getOrders());
+  protected readonly orders = this.historyService.orders;
+  protected readonly expenses = this.expensesService.expenses;
+  protected readonly loading = this.historyService.loading;
+  protected readonly error = this.historyService.error;
+  protected readonly expensesLoading = this.expensesService.loading;
+  protected readonly expensesError = this.expensesService.error;
   protected readonly selectedRange = signal<RangeFilter>('today');
-  protected readonly monthlyBuckets = signal<Record<string, Order[]>>(
+  protected readonly monthlyBuckets = computed<Record<string, Order[]>>(() =>
     this.historyService.getMonthlyOrderBuckets()
   );
+
+  async ngOnInit(): Promise<void> {
+    await Promise.all([
+      this.historyService.loadOrders(),
+      this.expensesService.loadExpenses()
+    ]);
+  }
 
   protected readonly filteredOrders = computed(() => {
     const range = this.selectedRange();
@@ -86,6 +108,43 @@ export class DashboardComponent {
   protected readonly totalSales = computed(() =>
     this.filteredOrders().reduce((sum, order) => sum + order.total, 0)
   );
+
+  protected readonly filteredExpenses = computed(() => {
+    const range = this.selectedRange();
+    const now = new Date();
+
+    return this.expenses().filter((expense) => {
+      const date = new Date(expense.expenseDate);
+
+      if (range === 'today') {
+        return this.isSameDay(date, now);
+      }
+
+      if (range === 'yesterday') {
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        return this.isSameDay(date, yesterday);
+      }
+
+      if (range === 'last7days') {
+        const start = new Date(now);
+        start.setDate(now.getDate() - 6);
+        start.setHours(0, 0, 0, 0);
+        return date >= start && date <= now;
+      }
+
+      return (
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth()
+      );
+    });
+  });
+
+  protected readonly totalExpenses = computed(() =>
+    this.filteredExpenses().reduce((sum, expense) => sum + expense.amount, 0)
+  );
+
+  protected readonly netSales = computed(() => this.totalSales() - this.totalExpenses());
 
   protected readonly averageTicket = computed(() =>
     this.filteredOrders().length > 0
@@ -204,21 +263,67 @@ export class DashboardComponent {
       .sort((a, b) => b.monthKey.localeCompare(a.monthKey));
   });
 
+  protected readonly deliveryDailySummary = computed<DeliveryDailySummary[]>(() => {
+    const grouped = new Map<string, DeliveryDailySummary>();
+
+    for (const order of this.filteredOrders()) {
+      if (order.orderType !== 'delivery') {
+        continue;
+      }
+
+      const date = new Date(order.createdAt);
+      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+        date.getDate()
+      ).padStart(2, '0')}`;
+      const label = date.toLocaleDateString('es-CL', {
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit'
+      });
+
+      const current = grouped.get(dateKey);
+      if (current) {
+        current.ordersCount += 1;
+        current.totalSales += order.total;
+      } else {
+        grouped.set(dateKey, {
+          dateKey,
+          label,
+          ordersCount: 1,
+          totalSales: order.total
+        });
+      }
+    }
+
+    return Array.from(grouped.values()).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  });
+
   protected readonly currentMonthSnapshot = computed(() => {
     const currentKey = this.getMonthKey(new Date());
     return this.monthlySnapshots().find((item) => item.monthKey === currentKey) ?? null;
+  });
+
+  protected readonly currentMonthExpenses = computed(() => {
+    const currentKey = this.getMonthKey(new Date());
+
+    return this.expenses().reduce((sum, expense) => {
+      const expenseKey = this.getMonthKey(new Date(expense.expenseDate));
+      return expenseKey === currentKey ? sum + expense.amount : sum;
+    }, 0);
   });
 
   setRange(range: RangeFilter): void {
     this.selectedRange.set(range);
   }
 
-  refreshDashboard(): void {
-    this.orders.set(this.historyService.getOrders());
-    this.monthlyBuckets.set(this.historyService.getMonthlyOrderBuckets());
+  async refreshDashboard(): Promise<void> {
+    await Promise.all([
+      this.historyService.loadOrders(),
+      this.expensesService.loadExpenses()
+    ]);
   }
 
-  resetCurrentMonthData(): void {
+  async resetCurrentMonthData(): Promise<void> {
     const confirmed = window.confirm(
       'Se reiniciara a cero la data del mes en curso. Esta accion no se puede deshacer. Deseas continuar?'
     );
@@ -227,8 +332,8 @@ export class DashboardComponent {
       return;
     }
 
-    this.historyService.clearCurrentMonthOrders();
-    this.refreshDashboard();
+    await this.historyService.clearCurrentMonthOrders();
+    await this.refreshDashboard();
     this.selectedRange.set('thisMonth');
   }
 

@@ -1,0 +1,283 @@
+.admin-data-page {
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(229, 9, 20, 0.12), transparent 28%),
+    linear-gradient(180deg, #121214 0%, #0a0a0b 100%);
+  color: #fff;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #ff9c91;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.login-card,
+.panel,
+.stat-card {
+  border: 1px solid #2c2c32;
+  border-radius: 24px;
+  background: rgba(20, 20, 24, 0.94);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24);
+}
+
+.login-card {
+  width: min(560px, 100%);
+  margin: 60px auto 0;
+  padding: 28px;
+  display: grid;
+  gap: 24px;
+}
+
+.login-card h1,
+.admin-header h1,
+.panel-head h2 {
+  margin: 0 0 8px;
+}
+
+.login-card p,
+.admin-header p {
+  margin: 0;
+  color: #b9bac2;
+}
+
+.login-form,
+.expense-form {
+  display: grid;
+  gap: 14px;
+}
+
+.worker-shifts {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #303039;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.section-label {
+  display: grid;
+  gap: 4px;
+}
+
+.section-label strong {
+  font-size: 15px;
+}
+
+.section-label span {
+  color: #aeb1bb;
+  font-size: 13px;
+}
+
+.worker-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.worker-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid #303039;
+  background: #17171b;
+}
+
+.worker-card.active {
+  border-color: rgba(74, 222, 128, 0.45);
+  background: rgba(22, 101, 52, 0.18);
+}
+
+.worker-card p {
+  margin: 6px 0 0;
+  color: #b0b1b8;
+}
+
+.worker-card-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.worker-amount {
+  font-size: 18px;
+}
+
+.worker-toggle-btn {
+  border: 0;
+  border-radius: 14px;
+  padding: 10px 14px;
+  background: #243925;
+  color: #dcfce7;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.worker-toggle-btn.active {
+  background: #7f1d1d;
+  color: #fee2e2;
+}
+
+.login-form label,
+.expense-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+  color: #f3f3f5;
+}
+
+.login-form input,
+.expense-form input,
+.expense-form textarea {
+  border: 1px solid #363740;
+  border-radius: 14px;
+  background: #18181d;
+  color: #fff;
+  padding: 14px 16px;
+  font: inherit;
+}
+
+.primary-btn,
+.ghost-btn,
+.danger-btn {
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: #e50914;
+  color: #fff;
+}
+
+.ghost-btn {
+  background: #202027;
+  color: #fff;
+}
+
+.danger-btn {
+  background: #a61a1a;
+  color: #fff;
+}
+
+.error-text {
+  margin: 0;
+  color: #ff8a8a;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.stat-card {
+  padding: 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.stat-card span {
+  color: #b7b7c2;
+}
+
+.stat-card strong {
+  font-size: 30px;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.panel {
+  padding: 22px;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 18px;
+}
+
+.panel-head span {
+  color: #a6a7af;
+  font-size: 14px;
+}
+
+.empty-box {
+  border: 1px dashed #34353e;
+  border-radius: 18px;
+  padding: 20px;
+  color: #b9bac2;
+}
+
+.error-box {
+  color: #ffb3b3;
+}
+
+.expense-list {
+  display: grid;
+  gap: 12px;
+}
+
+.expense-item {
+  border: 1px solid #303039;
+  border-radius: 18px;
+  padding: 16px;
+  background: #17171b;
+  display: grid;
+  gap: 12px;
+}
+
+.expense-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.expense-main p,
+.expense-main small {
+  margin: 4px 0 0;
+  color: #b0b1b8;
+}
+
+.expense-amount {
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .content-grid,
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-header,
+  .expense-main,
+  .panel-head,
+  .worker-card-footer {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+}

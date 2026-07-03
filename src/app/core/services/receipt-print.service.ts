@@ -5,6 +5,9 @@ import { Order, OrderChannel } from '../models/order.model';
   providedIn: 'root'
 })
 export class ReceiptPrintService {
+  private readonly receiptPaperWidthMm = 80;
+  private readonly receiptBottomFeedMm = 8;
+
   printKitchenTicket(order: Order): void {
     const metadataHtml = this.buildMetadataHtml(order);
     const detailItemsHtml = this.buildDetailItemsHtml(order);
@@ -160,6 +163,9 @@ export class ReceiptPrintService {
       `
       : '';
     const formattedDate = new Date(order.createdAt).toLocaleString('es-CL');
+    const chopsticksLine = order.chopsticksCount !== undefined
+      ? `<div><strong>Palitos:</strong> ${order.chopsticksCount > 0 ? order.chopsticksCount : 'Sin palitos'}</div>`
+      : '';
 
     return `
       <div class="meta">
@@ -168,6 +174,7 @@ export class ReceiptPrintService {
         <div><strong>Tipo:</strong> ${order.orderType.toUpperCase()}</div>
         <div><strong>Canal:</strong> ${channelLabel}</div>
         ${tableLine}
+        ${chopsticksLine}
         <div><strong>Fecha:</strong> ${formattedDate}</div>
         <div><strong>Estado:</strong> ${order.status.replaceAll('_', ' ').toUpperCase()}</div>
       </div>
@@ -177,19 +184,14 @@ export class ReceiptPrintService {
   private buildDetailItemsHtml(order: Order): string {
     return order.items
       .map((item) => {
-        const descriptionHtml = item.description
-          ? this.buildDescriptionHtml(item.description)
+        const printableItem = this.getPrintableItemParts(item);
+        const descriptionHtml = printableItem.description
+          ? this.buildDescriptionHtml(printableItem.description, item)
           : '';
 
         const extrasHtml = item.extras?.length
           ? `<div class="extras">+ ${item.extras
               .map((x) => `${x.name}${x.quantity > 1 ? ` x${x.quantity}` : ''}`)
-              .join(', ')}</div>`
-          : '';
-
-        const saucesInlineHtml = item.sauces?.length
-          ? `<div class="sauces">Salsas: ${item.sauces
-              .map((sauce) => `${sauce.name}${sauce.quantity > 1 ? ` x${sauce.quantity}` : ''}`)
               .join(', ')}</div>`
           : '';
 
@@ -201,12 +203,11 @@ export class ReceiptPrintService {
           <div class="item">
             <div class="item-row">
               <span class="qty">${item.quantity}x</span>
-              <span class="name">${item.name}</span>
+              <span class="name">${printableItem.name}</span>
               <span class="price">$${item.subtotal.toLocaleString('es-CL')}</span>
             </div>
             ${descriptionHtml}
             ${extrasHtml}
-            ${saucesInlineHtml}
             ${notesHtml}
           </div>
         `;
@@ -214,24 +215,133 @@ export class ReceiptPrintService {
       .join('');
   }
 
-  private buildDescriptionHtml(description: string): string {
+  private getPrintableItemParts(item: Order['items'][number]): {
+    name: string;
+    description?: string;
+  } {
+    if (!item.description) {
+      return { name: item.name };
+    }
+
+    const singleRollDescription = this.parseSingleRollDescription(item.description);
+
+    if (!singleRollDescription) {
+      return {
+        name: item.name,
+        description: item.description
+      };
+    }
+
+    return {
+      name: singleRollDescription.title,
+      description: singleRollDescription.detail
+    };
+  }
+
+  private buildDescriptionHtml(description: string, item: Order['items'][number]): string {
     const parts = description
       .split(' + ')
       .map((item) => item.trim())
       .filter(Boolean);
 
     if (parts.length <= 1) {
-      return `<div class="item-description">${description}</div>`;
+      return `<div class="item-description">${this.highlightChangedDescription(description, item)}</div>`;
     }
 
     return `
       <ul class="item-description description-list">
-        ${parts.map((item) => `<li>${item}</li>`).join('')}
+        ${parts.map((part) => `<li>${this.highlightChangedDescription(part, item)}</li>`).join('')}
       </ul>
     `;
   }
 
+  private parseSingleRollDescription(description: string): {
+    title: string;
+    detail: string;
+  } | null {
+    const match = description.match(/^([^.(]+(?:\s+en\s+[^.]+)?)\.\s+(.+)$/i);
+
+    if (!match) {
+      return null;
+    }
+
+    const title = match[1].trim();
+    const detail = match[2].trim();
+
+    if (!title || !detail || detail.includes(' + ')) {
+      return null;
+    }
+
+    return { title, detail };
+  }
+
+  private highlightChangedDescription(description: string, item: Order['items'][number]): string {
+    const addedExtras = this.getAddedIngredientNames(item);
+    const originalProtein = this.getOriginalProteinFromName(item.name);
+
+    return description
+      .split(',')
+      .map((part, index) => {
+        const trimmed = part.trim();
+        const normalized = this.normalizeText(trimmed);
+        const isAddedExtra = addedExtras.some((extra) => this.normalizeText(extra) === normalized);
+        const isChangedProtein =
+          index === 0 &&
+          originalProtein.length > 0 &&
+          normalized !== this.normalizeText(originalProtein);
+
+        return isAddedExtra || isChangedProtein ? `<strong>${trimmed}</strong>` : trimmed;
+      })
+      .join(', ');
+  }
+
+  private getAddedIngredientNames(item: Order['items'][number]): string[] {
+    return (item.extras ?? [])
+      .filter((extra) => extra.type === 'extra')
+      .map((extra) => extra.name.replace(/\s+(Roll|\d+\s+(?:cortes?|piezas?|rolls?))$/i, '').trim())
+      .filter(Boolean);
+  }
+
+  private getOriginalProteinFromName(name: string): string {
+    const proteins = [
+      'Camarón apanado',
+      'Pollo',
+      'Kanikama',
+      'Camarón',
+      'Salmón',
+      'Carne',
+      'Atún',
+      'Pulpo'
+    ];
+
+    return proteins.find((protein) => this.normalizeText(name).includes(this.normalizeText(protein))) ?? '';
+  }
+
+  private normalizeText(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
   private buildSauceItemsHtml(order: Order): string {
+    if (order.sauces?.length) {
+      return `
+        <div class="item sauce-item">
+          <div class="item-row sauce-row">
+            <span class="qty">${order.items.reduce((sum, item) => sum + item.quantity, 0)}x</span>
+            <span class="name">Pedido completo</span>
+          </div>
+          <ul class="sauces sauce-list">${order.sauces
+            .map(
+              (sauce) =>
+                `<li>${sauce.name}${sauce.quantity > 1 ? ` x${sauce.quantity}` : ''}</li>`
+            )
+            .join('')}</ul>
+        </div>
+      `;
+    }
+
     const sauceItems = order.items.filter((item) => (item.sauces?.length ?? 0) > 0);
 
     if (!sauceItems.length) {
@@ -267,7 +377,15 @@ export class ReceiptPrintService {
         </div>
       `
       : '';
-    const productsSubtotal = order.total - (order.deliveryFee ?? 0);
+    const sauceHtml = order.sauceCharge && order.sauceCharge > 0
+      ? `
+        <div class="total-line">
+          <span>Salsas</span>
+          <span>$${order.sauceCharge.toLocaleString('es-CL')}</span>
+        </div>
+      `
+      : '';
+    const productsSubtotal = order.total - (order.deliveryFee ?? 0) - (order.sauceCharge ?? 0);
 
     return `
       <div class="totals">
@@ -277,6 +395,7 @@ export class ReceiptPrintService {
         </div>
 
         ${deliveryHtml}
+        ${sauceHtml}
 
         <div class="grand-total">
           <span>Total final</span>
@@ -302,30 +421,51 @@ export class ReceiptPrintService {
   private getBaseStyles(): string {
     return `
       @page {
-        size: 80mm auto;
         margin: 0;
+        size: 80mm auto;
+      }
+
+      @media print {
+        html,
+        body {
+          margin: 0 !important;
+          overflow: visible !important;
+          background: #fff !important;
+          width: 80mm !important;
+        }
+
+        .ticket {
+          width: 76mm !important;
+          max-width: none !important;
+          margin: 0 auto !important;
+        }
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html {
+        background: #fff;
+        width: 80mm;
+      }
+
       body {
         margin: 0;
-        padding: 8mm 5mm 6mm;
+        padding: 2mm;
         font-family: Arial, Helvetica, sans-serif;
-        font-size: 11px;
+        font-size: 12px;
         color: #000;
-        width: 80mm;
-        max-width: 80mm;
         overflow-wrap: break-word;
         word-break: break-word;
+        background: #fff;
+        width: 80mm;
       }
 
       .ticket {
-        width: 100%;
-        max-width: 70mm;
-        margin: 0 auto;
+        width: 76mm;
+        max-width: none;
+        margin: 0;
       }
 
       .center {
@@ -333,26 +473,26 @@ export class ReceiptPrintService {
       }
 
       .title {
-        font-size: 17px;
+        font-size: 19px;
         font-weight: bold;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
         letter-spacing: 0.4px;
       }
 
       .subtitle {
-        font-size: 11px;
-        margin-bottom: 12px;
+        font-size: 12px;
+        margin-bottom: 9px;
       }
 
       .divider {
         border-top: 1px dashed #000;
-        margin: 8px 0;
+        margin: 7px 0;
       }
 
       .meta {
-        margin-bottom: 8px;
+        margin-bottom: 7px;
         line-height: 1.4;
-        font-size: 10px;
+        font-size: 12px;
       }
 
       .customer-highlight {
@@ -361,7 +501,7 @@ export class ReceiptPrintService {
         border: 1px solid #000;
         border-radius: 6px;
         background: #f5f5f5;
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 800;
         line-height: 1.2;
       }
@@ -369,24 +509,25 @@ export class ReceiptPrintService {
       .customer-highlight strong {
         display: inline-block;
         margin-right: 4px;
-        font-size: 10px;
+        font-size: 11px;
         text-transform: uppercase;
       }
 
       .item {
-        margin-bottom: 8px;
+        margin-bottom: 9px;
       }
 
       .item-row {
         display: grid;
-        grid-template-columns: 26px minmax(0, 1fr) auto;
+        grid-template-columns: 28px minmax(0, 1fr) auto;
         gap: 6px;
         font-weight: bold;
         align-items: start;
+        font-size: 12px;
       }
 
       .qty {
-        width: 24px;
+        width: 26px;
       }
 
       .name {
@@ -397,17 +538,17 @@ export class ReceiptPrintService {
       .price {
         white-space: nowrap;
         text-align: right;
-        font-size: 10px;
+        font-size: 11px;
       }
 
       .extras,
       .item-description,
       .notes,
       .sauces {
-        margin-left: 32px;
-        margin-top: 2px;
-        font-size: 10px;
-        line-height: 1.25;
+        margin-left: 34px;
+        margin-top: 3px;
+        font-size: 11px;
+        line-height: 1.35;
       }
 
       .item-description {
@@ -417,7 +558,7 @@ export class ReceiptPrintService {
 
       .description-list {
         margin-bottom: 4px;
-        padding-left: 18px;
+        padding-left: 16px;
       }
 
       .description-list li {
@@ -438,7 +579,7 @@ export class ReceiptPrintService {
       }
 
       .section-title {
-        font-size: 12px;
+        font-size: 13px;
         font-weight: bold;
         text-transform: uppercase;
         margin-bottom: 8px;
@@ -449,12 +590,12 @@ export class ReceiptPrintService {
       }
 
       .sauce-row {
-        grid-template-columns: 26px minmax(0, 1fr);
+        grid-template-columns: 28px minmax(0, 1fr);
       }
 
       .totals {
         margin-top: 10px;
-        font-size: 10px;
+        font-size: 11px;
       }
 
       .total-line {
@@ -492,10 +633,10 @@ export class ReceiptPrintService {
 
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
+      iframe.style.left = '-10000px';
+      iframe.style.top = '0';
+      iframe.style.width = `${this.receiptPaperWidthMm}mm`;
+      iframe.style.height = '1000px';
       iframe.style.border = '0';
       iframe.style.opacity = '0';
       iframe.setAttribute('aria-hidden', 'true');
@@ -526,6 +667,7 @@ export class ReceiptPrintService {
       frameDocument.close();
 
       setTimeout(() => {
+        this.applyMeasuredPageSize(frameDocument);
         frameWindow.focus();
         frameWindow.print();
 
@@ -538,5 +680,53 @@ export class ReceiptPrintService {
     };
 
     printNext();
+  }
+
+  private applyMeasuredPageSize(frameDocument: Document): void {
+    const ticket = frameDocument.querySelector<HTMLElement>('.ticket');
+    const body = frameDocument.body;
+
+    if (!ticket || !body) {
+      return;
+    }
+
+    const pxPerMm = this.getPixelsPerMillimeter(frameDocument);
+    const ticketHeightPx = Math.max(ticket.scrollHeight, ticket.getBoundingClientRect().height);
+    const bodyStyles = frameDocument.defaultView?.getComputedStyle(body);
+    const bodyPaddingPx = bodyStyles
+      ? parseFloat(bodyStyles.paddingTop) + parseFloat(bodyStyles.paddingBottom)
+      : 0;
+    const contentHeightPx = ticketHeightPx + bodyPaddingPx;
+    const pageHeightMm = Math.ceil(contentHeightPx / pxPerMm) + this.receiptBottomFeedMm;
+    const pageSizeStyle = frameDocument.createElement('style');
+
+    pageSizeStyle.textContent = `
+      @page {
+        margin: 0;
+        size: ${this.receiptPaperWidthMm}mm ${pageHeightMm}mm;
+      }
+
+      html,
+      body {
+        width: ${this.receiptPaperWidthMm}mm !important;
+        min-height: ${pageHeightMm}mm !important;
+      }
+    `;
+
+    frameDocument.head.appendChild(pageSizeStyle);
+  }
+
+  private getPixelsPerMillimeter(frameDocument: Document): number {
+    const probe = frameDocument.createElement('div');
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.width = '100mm';
+    probe.style.height = '1mm';
+    frameDocument.body.appendChild(probe);
+
+    const pixelsPerMillimeter = probe.getBoundingClientRect().width / 100;
+    probe.remove();
+
+    return pixelsPerMillimeter || 3.78;
   }
 }

@@ -66,6 +66,87 @@ export const PRODUCTS: Product[] = [
   },
 
   // =========================
+  // ROLL SIN ARROZ
+  // =========================
+  {
+    id: 'sin-arroz-a-envuelto-palta',
+    name: 'Envuelto - Palta',
+    category: 'Roll Sin Arroz',
+    description: 'Envuelto en palta. Salmón, camarón, queso, cebollino',
+    price: 6500,
+    active: true,
+    allowsNotes: true,
+    allowsProteinChange: false,
+    availableExtras: ['extra-aceitunas', 'extra-champignon', 'extra-palmito']
+  },
+  {
+    id: 'sin-arroz-b-envuelto-queso',
+    name: 'Envuelto - Queso',
+    category: 'Roll Sin Arroz',
+    description: 'Envuelto en queso. Salmón, camarón, queso, cebollino',
+    price: 6500,
+    active: true,
+    allowsNotes: true,
+    allowsProteinChange: false,
+    availableExtras: ['extra-aceitunas', 'extra-champignon', 'extra-palmito']
+  },
+  {
+    id: 'sin-arroz-c-tempura',
+    name: 'Tempura - Carne',
+    category: 'Roll Sin Arroz',
+    description: 'Tempura. Carne, pimentón, queso, cebollino',
+    price: 6000,
+    active: true,
+    allowsNotes: true,
+    allowsProteinChange: false,
+    availableExtras: ['extra-aceitunas', 'extra-champignon', 'extra-palmito']
+  },
+  {
+    id: 'sin-arroz-c-envuelto-palta',
+    name: 'Envuelto - Palta Carne',
+    category: 'Roll Sin Arroz',
+    description: 'Envuelto en palta. Carne, pimentón, queso, cebollino',
+    price: 6000,
+    active: true,
+    allowsNotes: true,
+    allowsProteinChange: false,
+    availableExtras: ['extra-aceitunas', 'extra-champignon', 'extra-palmito']
+  },
+  {
+    id: 'sin-arroz-c-envuelto-queso',
+    name: 'Envuelto - Queso Carne',
+    category: 'Roll Sin Arroz',
+    description: 'Envuelto en queso. Carne, pimentón, queso, cebollino',
+    price: 6000,
+    active: true,
+    allowsNotes: true,
+    allowsProteinChange: false,
+    availableExtras: ['extra-aceitunas', 'extra-champignon', 'extra-palmito']
+  },
+  {
+    id: 'sin-arroz-d-tempura',
+    name: 'Tempura - Pollo',
+    category: 'Roll Sin Arroz',
+    description: 'Tempura. Pollo, champiñón, queso, cebollín',
+    price: 5500,
+    active: true,
+    allowsNotes: true,
+    allowsProteinChange: false,
+    availableExtras: ['extra-aceitunas', 'extra-champignon', 'extra-palmito']
+  },
+  {
+    id: 'sin-arroz-personalizable',
+    name: 'Sin Arroz Personalizable',
+    category: 'Roll Sin Arroz',
+    description: 'Arma un roll sin arroz con cobertura, proteínas, complementos y precio manual.',
+    price: 0,
+    active: true,
+    allowsNotes: true,
+    allowsProteinChange: false,
+    availableExtras: ['extra-aceitunas', 'extra-champignon', 'extra-palmito']
+  },
+
+  // =========================
   // BLACKROLLS CORTES - TEMPURAS (PANKO)
   // =========================
   {
@@ -527,5 +608,16 @@ export const PRODUCTS: Product[] = [
     allowsNotes: true,
     allowsProteinChange: true,
     availableExtras: ['extra-aceitunas', 'extra-champignon', 'extra-palmito']
+  },
+  {
+    id: 'gyosas-6',
+    name: '6 Gyosas',
+    category: 'Korokes / Pollo',
+    description: 'Porción de 6 gyosas',
+    price: 4000,
+    active: true,
+    allowsNotes: true,
+    allowsProteinChange: false,
+    availableExtras: []
   }
 ];

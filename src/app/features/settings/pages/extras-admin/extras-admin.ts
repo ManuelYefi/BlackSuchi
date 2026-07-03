@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ExtrasService } from '../../../../core/services/extras.service';
 import { ProductOption } from '../../../../core/models/product.model';
@@ -19,10 +19,12 @@ type ExtraGroup = {
   templateUrl: './extras-admin.html',
   styleUrl: './extras-admin.scss'
 })
-export class ExtrasAdminComponent {
+export class ExtrasAdminComponent implements OnInit {
   private readonly extrasService = inject(ExtrasService);
 
-  protected readonly extras = signal<ProductOption[]>(this.extrasService.getExtras());
+  protected readonly extras = this.extrasService.extras;
+  protected readonly loading = this.extrasService.loading;
+  protected readonly error = this.extrasService.error;
   protected readonly totalExtras = computed(() => this.extras().length);
   protected readonly averagePrice = computed(() => {
     const extras = this.extras();
@@ -57,15 +59,17 @@ export class ExtrasAdminComponent {
     return groups.filter((group) => group.extras.length > 0);
   });
 
-  updatePrice(extra: ProductOption, value: string) {
-    const updated = { ...extra, price: Number(value) };
-    this.extrasService.updateExtra(updated);
-    this.extras.set(this.extrasService.getExtras());
+  async ngOnInit(): Promise<void> {
+    await this.extrasService.loadExtras();
   }
 
-  resetExtras() {
-    this.extrasService.resetExtras();
-    this.extras.set(this.extrasService.getExtras());
+  async updatePrice(extra: ProductOption, value: string): Promise<void> {
+    const updated = { ...extra, price: Number(value) };
+    await this.extrasService.updateExtra(updated);
+  }
+
+  async resetExtras(): Promise<void> {
+    await this.extrasService.resetExtras();
   }
 
   formatPrice(value: number): string {

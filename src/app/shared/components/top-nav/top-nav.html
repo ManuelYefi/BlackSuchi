@@ -12,13 +12,30 @@
       <a routerLink="/cocina" routerLinkActive="active">Cocina</a>
       <a routerLink="/historial" routerLinkActive="active">Historial</a>
       <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/datos-admin" routerLinkActive="active">Datos</a>
       <a routerLink="/menu-admin" routerLinkActive="active">Menú</a>
       <a routerLink="/extras-admin" routerLinkActive="active">Extras</a>
       <a routerLink="/mesas-admin" routerLinkActive="active">Mesas</a>
     </nav>
   
-    <div class="role-box">
-      <span>Rol</span>
-      <strong>{{ role | titlecase }}</strong>
+    <div class="nav-meta">
+      <div class="service-status" [attr.title]="lastMessage()">
+        <div class="service-pill" [class.up]="apiStatus() === 'up'" [class.down]="apiStatus() === 'down'">
+          <span class="service-dot"></span>
+          API
+        </div>
+        <div
+          class="service-pill"
+          [class.up]="databaseStatus() === 'up'"
+          [class.down]="databaseStatus() === 'down'"
+        >
+          <span class="service-dot"></span>
+          SQL
+        </div>
+      </div>
+      <div class="role-box">
+        <span>Rol</span>
+        <strong>{{ role | titlecase }}</strong>
+      </div>
     </div>
   </header>

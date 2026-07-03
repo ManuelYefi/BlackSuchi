@@ -103,7 +103,7 @@
 
 .status-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
   margin-top: 18px;
 }
@@ -156,4 +156,9 @@
 .priority-card .status-actions button {
   background: white;
   color: #111;
+}
+
+.danger-btn {
+  background: #b91c1c !important;
+  color: #fff !important;
 }

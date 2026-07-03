@@ -147,6 +147,21 @@
   cursor: pointer;
 }
 
+.order-card-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.order-card-actions button {
+  margin-top: 0;
+}
+
+.danger-btn {
+  background: #e50914 !important;
+  color: #fff !important;
+}
+
 .date-group {
   margin-bottom: 24px;
 }

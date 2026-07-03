@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Product } from '../../../../core/models/product.model';
 import { MenuService } from '../../../../core/services/menu.service';
@@ -11,36 +11,40 @@ import { MenuService } from '../../../../core/services/menu.service';
   templateUrl: './menu-admin.html',
   styleUrl: './menu-admin.scss'
 })
-export class MenuAdminComponent {
+export class MenuAdminComponent implements OnInit {
   private readonly menuService = inject(MenuService);
 
-  protected readonly products = signal<Product[]>(this.menuService.getProducts());
+  protected readonly products = this.menuService.products;
+  protected readonly loading = this.menuService.loading;
+  protected readonly error = this.menuService.error;
 
-  saveProduct(product: Product): void {
-    this.menuService.updateProduct(product);
-    this.products.set(this.menuService.getProducts());
+  async ngOnInit(): Promise<void> {
+    await this.menuService.loadProducts();
   }
 
-  toggleActive(product: Product): void {
+  async saveProduct(product: Product): Promise<void> {
+    await this.menuService.updateProduct(product);
+  }
+
+  async toggleActive(product: Product): Promise<void> {
     const updated: Product = {
       ...product,
       active: !product.active
     };
 
-    this.saveProduct(updated);
+    await this.saveProduct(updated);
   }
 
-  updatePrice(product: Product, value: string): void {
+  async updatePrice(product: Product, value: string): Promise<void> {
     const updated: Product = {
       ...product,
       price: Number(value)
     };
 
-    this.saveProduct(updated);
+    await this.saveProduct(updated);
   }
 
-  resetMenu(): void {
-    this.menuService.resetProducts();
-    this.products.set(this.menuService.getProducts());
+  async resetMenu(): Promise<void> {
+    await this.menuService.resetProducts();
   }
 }

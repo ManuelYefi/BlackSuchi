@@ -9,6 +9,14 @@
         Restaurar menú base
       </button>
     </div>
+
+    @if (loading()) {
+      <p>Cargando menú desde MySQL local...</p>
+    }
+
+    @if (error(); as errorMessage) {
+      <p>{{ errorMessage }}</p>
+    }
   
     <div class="product-list">
       @for (product of products(); track product.id) {

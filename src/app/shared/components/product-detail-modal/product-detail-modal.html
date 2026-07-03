@@ -9,7 +9,262 @@
       <button type="button" class="close-btn" (click)="close()">✕</button>
     </div>
 
-    @if (product.allowsProteinChange) {
+    @if (isSinArrozProduct()) {
+      <div class="section sin-arroz-builder">
+        <div class="section-head">
+          <h3>Arma tu Sin Arroz</h3>
+          <small>
+            @if (isSinArrozCustomProduct()) {
+              Define cobertura, proteínas, complementos y el precio del roll.
+            } @else {
+              Mantiene el precio base. La proteína principal queda fija y puedes ajustar el resto.
+            }
+          </small>
+        </div>
+
+        <div class="builder-block">
+          <span class="builder-label">Cobertura</span>
+          @if (isSinArrozCustomProduct()) {
+            <div class="builder-options">
+              @for (option of getSinArrozWrapOptions(); track option) {
+                <button
+                  type="button"
+                  class="builder-option"
+                  [class.active]="sinArrozWrapLabel() === option"
+                  (click)="selectSinArrozWrap(option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+          } @else {
+            <div class="builder-fixed">{{ sinArrozWrapLabel() }}</div>
+          }
+        </div>
+
+        <div class="builder-block">
+          <span class="builder-label">Proteínas</span>
+          <div class="builder-options">
+            @for (option of getSinArrozProteinOptions(); track option) {
+              <button
+                type="button"
+                class="builder-option"
+                [class.active]="isSinArrozProteinSelected(option)"
+                [class.locked]="isSinArrozProteinLocked(option)"
+                [class.disabled]="
+                  !isSinArrozProteinSelected(option) &&
+                  selectedSinArrozProteins().length >= sinArrozConfig().requiredProteins.length + sinArrozConfig().optionalProteinLimit
+                "
+                (click)="toggleSinArrozProtein(option)"
+              >
+                {{ option }}
+                @if (isSinArrozProteinLocked(option)) {
+                  <span>Base</span>
+                }
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="builder-block">
+          <span class="builder-label">Complementos</span>
+          <div class="builder-options">
+            @for (option of getSinArrozFillingOptions(); track option) {
+              <button
+                type="button"
+                class="builder-option"
+                [class.active]="isSinArrozFillingSelected(option)"
+                (click)="toggleSinArrozFilling(option)"
+              >
+                {{ option }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="builder-summary">
+          <strong>Configuración:</strong>
+          <span>{{ sinArrozSummary() }}</span>
+        </div>
+
+        @if (isSinArrozCustomProduct()) {
+          <div class="builder-block">
+            <span class="builder-label">Precio del roll</span>
+            <input
+              type="number"
+              min="1"
+              class="builder-price-input"
+              placeholder="Ej: 6500"
+              [value]="customSinArrozPrice()"
+              (input)="updateCustomSinArrozPrice($any($event.target).value)"
+            />
+          </div>
+        }
+      </div>
+    }
+
+    @if (isPromoProduct() && promoRolls().length > 0) {
+      <div class="section promo-builder">
+        <div class="section-head">
+          <h3>Rolls de la promo</h3>
+          <small>Cambia proteína, envoltura o ingredientes por roll.</small>
+        </div>
+
+        <div class="promo-roll-list">
+          @for (roll of promoRolls(); track roll.id; let index = $index) {
+            <div class="promo-roll-card">
+              <div class="promo-roll-head">
+                <strong>Roll {{ index + 1 }}</strong>
+                <span>{{ roll.cuts }}</span>
+              </div>
+
+              <div class="builder-block">
+                <span class="builder-label">Proteína</span>
+                <div class="builder-options compact">
+                  @for (option of getPromoProteinOptions(); track option) {
+                    <button
+                      type="button"
+                      class="builder-option"
+                      [class.active]="roll.protein === option"
+                      [class.changed]="roll.protein === option && roll.protein !== roll.originalProtein"
+                      (click)="setPromoRollProtein(roll.id, option)"
+                    >
+                      {{ option }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="builder-block">
+                <span class="builder-label">Envoltura</span>
+                <div class="builder-options compact">
+                  @for (option of getPromoWrapOptions(); track option) {
+                    <button
+                      type="button"
+                      class="builder-option"
+                      [class.active]="roll.wrap === option"
+                      [class.changed]="roll.wrap === option && roll.wrap !== roll.originalWrap"
+                      (click)="setPromoRollWrap(roll.id, option)"
+                    >
+                      {{ option }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="builder-block">
+                <span class="builder-label">Ingredientes</span>
+                <div class="builder-options compact">
+                  @for (option of getPromoIngredientOptions(); track option) {
+                    <button
+                      type="button"
+                      class="builder-option"
+                      [class.active]="isPromoRollIngredientSelected(roll, option)"
+                      [class.changed]="
+                        isPromoRollIngredientSelected(roll, option) &&
+                        !isPromoRollOriginalIngredient(roll, option)
+                      "
+                      (click)="togglePromoRollIngredient(roll.id, option)"
+                    >
+                      {{ option }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="builder-summary compact-summary">
+                <strong>Resultado</strong>
+                <span>{{ formatPromoRollResult(roll) }}</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="builder-summary">
+          <strong>Promo final:</strong>
+          <span>{{ getPromoSummary() }}</span>
+        </div>
+      </div>
+    }
+
+    @if (isEditableRollProduct() && editableRoll(); as roll) {
+      <div class="section promo-builder">
+        <div class="section-head">
+          <h3>Personalizar roll</h3>
+          <small>Cambia proteína, envoltura o ingredientes.</small>
+        </div>
+
+        <div class="promo-roll-list">
+          <div class="promo-roll-card">
+            <div class="promo-roll-head">
+              <strong>{{ product.name }}</strong>
+              <span>Roll</span>
+            </div>
+
+            <div class="builder-block">
+              <span class="builder-label">Proteína</span>
+              <div class="builder-options compact">
+                @for (option of getPromoProteinOptions(); track option) {
+                  <button
+                    type="button"
+                    class="builder-option"
+                    [class.active]="roll.protein === option"
+                    [class.changed]="roll.protein === option && roll.protein !== roll.originalProtein"
+                    (click)="setEditableRollProtein(option)"
+                  >
+                    {{ option }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="builder-block">
+              <span class="builder-label">Envoltura</span>
+              <div class="builder-options compact">
+                @for (option of getPromoWrapOptions(); track option) {
+                  <button
+                    type="button"
+                    class="builder-option"
+                    [class.active]="roll.wrap === option"
+                    [class.changed]="roll.wrap === option && roll.wrap !== roll.originalWrap"
+                    (click)="setEditableRollWrap(option)"
+                  >
+                    {{ option }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="builder-block">
+              <span class="builder-label">Ingredientes</span>
+              <div class="builder-options compact">
+                @for (option of getPromoIngredientOptions(); track option) {
+                  <button
+                    type="button"
+                    class="builder-option"
+                    [class.active]="isEditableRollIngredientSelected(option)"
+                    [class.changed]="
+                      isEditableRollIngredientSelected(option) &&
+                      !isEditableRollOriginalIngredient(option)
+                    "
+                    (click)="toggleEditableRollIngredient(option)"
+                  >
+                    {{ option }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="builder-summary compact-summary">
+              <strong>Resultado</strong>
+              <span>{{ formatEditableRollResult() }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (product.allowsProteinChange && !isEditableRollProduct()) {
       <div class="section">
         <h3>Cambio de proteína</h3>
 
@@ -48,26 +303,6 @@
     </div>
 
     <div class="section">
-      <h3>Salsas</h3>
-
-      <div class="sauce-list">
-        @for (sauce of availableSauces; track sauce) {
-          <div class="extra-row">
-            <div class="extra-info">
-              <span>{{ sauce }}</span>
-            </div>
-
-            <div class="extra-quantity">
-              <button type="button" (click)="decreaseSauce(sauce)">-</button>
-              <span>{{ getSauceQuantity(sauce) }}</span>
-              <button type="button" (click)="increaseSauce(sauce)">+</button>
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-
-    <div class="section">
       <h3>Notas</h3>
       <textarea
         rows="4"
@@ -78,12 +313,23 @@
     </div>
 
     <div class="summary">
+      @if (isSinArrozProduct()) {
+        <strong>Base roll: {{ sinArrozBasePricePreview() | currency:'CLP':'symbol':'1.0-0' }}</strong>
+      }
       <strong>Extras: {{ totalExtras() | currency:'CLP':'symbol':'1.0-0' }}</strong>
+      <strong>Total adicionales: {{ totalAddons() | currency:'CLP':'symbol':'1.0-0' }}</strong>
     </div>
 
     <div class="actions">
       <button type="button" class="secondary" (click)="close()">Cancelar</button>
-      <button type="button" class="primary" (click)="confirmSelection()">Agregar</button>
+      <button
+        type="button"
+        class="primary"
+        [disabled]="isSinArrozProduct() && !canConfirmSinArroz()"
+        (click)="confirmSelection()"
+      >
+        {{ existingItem ? 'Guardar cambios' : 'Agregar' }}
+      </button>
     </div>
   </div>
 </div>

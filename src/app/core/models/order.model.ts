@@ -1,4 +1,4 @@
-import { OrderItem } from './order-item.model';
+import { OrderItem, SelectedSauce } from './order-item.model';
 
 export type OrderType = 'local' | 'retiro' | 'delivery';
 export type OrderChannel =
@@ -9,19 +9,22 @@ export type OrderChannel =
   | 'pedidos_ya'
   | 'rappi';
 
-  export interface Order {
-    id: string;
-    items: OrderItem[];
-    total: number;
-  
-    orderType: OrderType;
-    orderChannel: OrderChannel;
-  
-    deliveryFee?: number; // 🔥 NUEVO
-  
-    tableNumber?: number;
-    customerName?: string;
-  
-    status: 'pendiente' | 'en_preparacion' | 'listo' | 'entregado';
-    createdAt: string;
-  }
+export interface Order {
+  id: string;
+  items: OrderItem[];
+  total: number;
+  sauceCharge?: number;
+  sauces?: SelectedSauce[];
+
+  orderType: OrderType;
+  orderChannel: OrderChannel;
+
+  deliveryFee?: number; // 🔥 NUEVO
+  chopsticksCount?: number;
+
+  tableNumber?: number;
+  customerName?: string;
+
+  status: 'pendiente' | 'en_preparacion' | 'listo' | 'entregado';
+  createdAt: string;
+}

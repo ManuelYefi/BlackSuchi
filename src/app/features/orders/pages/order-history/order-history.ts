@@ -4,7 +4,7 @@ import {
   DatePipe,
   TitleCasePipe
 } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Order } from '../../../../core/models/order.model';
 import { OrderHistoryService } from '../../../../core/services/order-history.service';
@@ -32,14 +32,20 @@ type GroupedOrders = {
   templateUrl: './order-history.html',
   styleUrl: './order-history.scss'
 })
-export class OrderHistoryComponent {
+export class OrderHistoryComponent implements OnInit {
   private readonly historyService = inject(OrderHistoryService);
   private readonly receiptPrintService = inject(ReceiptPrintService);
 
-  protected readonly orders = signal<Order[]>(this.historyService.getOrders());
+  protected readonly orders = this.historyService.orders;
+  protected readonly loading = this.historyService.loading;
+  protected readonly error = this.historyService.error;
   protected readonly search = signal('');
   protected readonly statusFilter = signal<StatusFilter>('todos');
   protected readonly viewMode = signal<HistoryViewMode>('today');
+
+  async ngOnInit(): Promise<void> {
+    await this.historyService.loadOrders();
+  }
 
   protected readonly filteredOrders = computed(() => {
     const term = this.search().trim().toLowerCase();
@@ -61,8 +67,11 @@ export class OrderHistoryComponent {
         const customerName = (order.customerName ?? '').toLowerCase();
         const tableText = order.tableNumber ? `mesa ${order.tableNumber}` : '';
         const productsText = order.items.map((x) => x.name.toLowerCase()).join(' ');
-        const saucesText = order.items
+        const saucesText = [
+          ...(order.sauces ?? []),
+          ...order.items
           .flatMap((x) => x.sauces ?? [])
+        ]
           .map((x) => x.name.toLowerCase())
           .join(' ');
 
@@ -123,8 +132,28 @@ export class OrderHistoryComponent {
     this.search.set(value);
   }
 
-  refreshOrders(): void {
-    this.orders.set(this.historyService.getOrders());
+  async refreshOrders(): Promise<void> {
+    await this.historyService.loadOrders();
+  }
+
+  canDeleteOrder(order: Order): boolean {
+    return order.status !== 'entregado';
+  }
+
+  async deleteOrder(order: Order): Promise<void> {
+    if (!this.canDeleteOrder(order)) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Eliminar el pedido #${order.id.slice(-6)} de ${order.customerName ?? 'cliente sin nombre'}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await this.historyService.deleteOrder(order.id);
   }
 
   printOrder(order: Order): void {

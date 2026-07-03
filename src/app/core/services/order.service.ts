@@ -1,7 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import {
   OrderItem,
-  SauceOption,
   SelectedExtra,
   SelectedSauce
 } from '../models/order-item.model';
@@ -32,13 +31,13 @@ export class OrderService {
     product: Product,
     notes?: string,
     extras: SelectedExtra[] = [],
-    sauces: SelectedSauce[] = []
+    _sauces: SelectedSauce[] = [],
+    descriptionOverride?: string,
+    basePriceOverride?: number
   ): void {
     const normalizedNotes = notes?.trim() || '';
-    const normalizedSauces = this.normalizeSauces(sauces);
-    const saucesKey = JSON.stringify(
-      [...normalizedSauces].sort((a, b) => a.name.localeCompare(b.name))
-    );
+    const effectiveDescription = descriptionOverride ?? product.description;
+    const effectiveBasePrice = basePriceOverride ?? product.price;
     const extrasKey = JSON.stringify(
       [...extras].sort((a, b) => a.id.localeCompare(b.id))
     );
@@ -47,54 +46,140 @@ export class OrderService {
     const existingIndex = currentItems.findIndex(
       (item) =>
         item.productId === product.id &&
+        (item.description ?? '') === (effectiveDescription ?? '') &&
+        (item.baseUnitPrice ?? item.unitPrice) ===
+          (effectiveBasePrice +
+            extras.reduce((acc, extra) => acc + extra.price * extra.quantity, 0)) &&
         (item.notes ?? '') === normalizedNotes &&
-        JSON.stringify(
-          [...this.normalizeSauces(item.sauces ?? [])].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          )
-        ) === saucesKey &&
         JSON.stringify(
           [...(item.extras ?? [])].sort((a, b) => a.id.localeCompare(b.id))
         ) === extrasKey
     );
 
-    const unitPrice =
-    product.price + extras.reduce((acc, extra) => acc + extra.price * extra.quantity, 0);
+    const baseUnitPrice =
+      effectiveBasePrice + extras.reduce((acc, extra) => acc + extra.price * extra.quantity, 0);
 
     if (existingIndex >= 0) {
+      const nextQuantity = currentItems[existingIndex].quantity + 1;
       currentItems[existingIndex] = {
         ...currentItems[existingIndex],
-        quantity: currentItems[existingIndex].quantity + 1,
-        subtotal:
-          (currentItems[existingIndex].quantity + 1) *
-          currentItems[existingIndex].unitPrice
+        quantity: nextQuantity,
+        sauceCharge: 0,
+        subtotal: this.calculateSubtotal(
+          currentItems[existingIndex].baseUnitPrice ?? currentItems[existingIndex].unitPrice,
+          nextQuantity,
+          0
+        )
       };
     } else {
       currentItems.push({
         uid: crypto.randomUUID(),
         productId: product.id,
         name: product.name,
-        description: product.description,
+        description: effectiveDescription,
         quantity: 1,
-        unitPrice,
-        subtotal: unitPrice,
+        baseUnitPrice,
+        unitPrice: baseUnitPrice,
+        sauceCharge: 0,
+        subtotal: this.calculateSubtotal(baseUnitPrice, 1, 0),
         notes: normalizedNotes || undefined,
-        extras: extras.length ? extras : undefined,
-        sauces: normalizedSauces.length ? normalizedSauces : undefined
+        extras: extras.length ? extras : undefined
       });
     }
 
     this.updateState(currentItems);
   }
 
+  updateItemConfiguration(
+    uid: string,
+    product: Product,
+    notes?: string,
+    extras: SelectedExtra[] = [],
+    _sauces: SelectedSauce[] = [],
+    descriptionOverride?: string,
+    basePriceOverride?: number
+  ): void {
+    const currentItems = [...this._items()];
+    const itemIndex = currentItems.findIndex((item) => item.uid === uid);
+
+    if (itemIndex < 0) {
+      return;
+    }
+
+    const originalItem = currentItems[itemIndex];
+    const normalizedNotes = notes?.trim() || '';
+    const effectiveDescription = descriptionOverride ?? product.description;
+    const effectiveBasePrice = basePriceOverride ?? product.price;
+    const normalizedExtras = extras.filter((extra) => extra.quantity > 0);
+    const baseUnitPrice =
+      effectiveBasePrice +
+      normalizedExtras.reduce(
+        (acc, extra) => acc + extra.price * extra.quantity,
+        0
+      );
+
+    const updatedItem: OrderItem = {
+      ...originalItem,
+      productId: product.id,
+      name: product.name,
+      description: effectiveDescription,
+      baseUnitPrice,
+      unitPrice: baseUnitPrice,
+      sauceCharge: 0,
+      subtotal: this.calculateSubtotal(baseUnitPrice, originalItem.quantity, 0),
+      notes: normalizedNotes || undefined,
+      extras: normalizedExtras.length ? normalizedExtras : undefined,
+      sauces: undefined
+    };
+
+    const withoutEdited = currentItems.filter((item) => item.uid !== uid);
+    const mergeIndex = withoutEdited.findIndex(
+      (item) =>
+        item.productId === updatedItem.productId &&
+        (item.description ?? '') === (updatedItem.description ?? '') &&
+        (item.baseUnitPrice ?? item.unitPrice) === updatedItem.baseUnitPrice &&
+        (item.notes ?? '') === (updatedItem.notes ?? '') &&
+        this.getExtrasKey(item.extras ?? []) === this.getExtrasKey(updatedItem.extras ?? [])
+    );
+
+    if (mergeIndex >= 0) {
+      const mergedQuantity = withoutEdited[mergeIndex].quantity + updatedItem.quantity;
+      withoutEdited[mergeIndex] = {
+        ...withoutEdited[mergeIndex],
+        quantity: mergedQuantity,
+        sauceCharge: 0,
+        subtotal: this.calculateSubtotal(
+          withoutEdited[mergeIndex].baseUnitPrice ?? withoutEdited[mergeIndex].unitPrice,
+          mergedQuantity,
+          0
+        )
+      };
+
+      this.updateState(withoutEdited);
+      return;
+    }
+
+    withoutEdited.splice(itemIndex, 0, updatedItem);
+    this.updateState(withoutEdited);
+  }
+
   increase(uid: string): void {
     const updated = this._items().map((item) =>
       item.uid === uid
-        ? {
-            ...item,
-            quantity: item.quantity + 1,
-            subtotal: (item.quantity + 1) * item.unitPrice
-          }
+        ? (() => {
+            const nextQuantity = item.quantity + 1;
+
+            return {
+              ...item,
+              quantity: nextQuantity,
+              sauceCharge: 0,
+              subtotal: this.calculateSubtotal(
+                item.baseUnitPrice ?? item.unitPrice,
+                nextQuantity,
+                0
+              )
+            };
+          })()
         : item
     );
 
@@ -103,15 +188,24 @@ export class OrderService {
 
   decrease(uid: string): void {
     const updated = this._items()
-      .map((item) =>
-        item.uid === uid
-          ? {
-              ...item,
-              quantity: item.quantity - 1,
-              subtotal: (item.quantity - 1) * item.unitPrice
-            }
-          : item
-      )
+      .map((item) => {
+        if (item.uid !== uid) {
+          return item;
+        }
+
+        const nextQuantity = item.quantity - 1;
+
+        return {
+          ...item,
+          quantity: nextQuantity,
+          sauceCharge: 0,
+          subtotal: this.calculateSubtotal(
+            item.baseUnitPrice ?? item.unitPrice,
+            nextQuantity,
+            0
+          )
+        };
+      })
       .filter((item) => item.quantity > 0);
 
     this.updateState(updated);
@@ -136,17 +230,20 @@ export class OrderService {
 
     return items.map((item) => ({
       ...item,
-      sauces: item.sauces ? this.normalizeSauces(item.sauces) : undefined
+      baseUnitPrice: item.baseUnitPrice ?? item.unitPrice,
+      sauceCharge: 0,
+      sauces: undefined
+    })).map((item) => ({
+      ...item,
+      subtotal: this.calculateSubtotal(item.baseUnitPrice, item.quantity, 0)
     }));
   }
 
-  private normalizeSauces(sauces: Array<SelectedSauce | SauceOption>): SelectedSauce[] {
-    return sauces
-      .map((sauce) =>
-        typeof sauce === 'string'
-          ? { name: sauce, quantity: 1 }
-          : { name: sauce.name, quantity: sauce.quantity }
-      )
-      .filter((sauce) => sauce.quantity > 0);
+  private getExtrasKey(extras: SelectedExtra[]): string {
+    return JSON.stringify([...extras].sort((a, b) => a.id.localeCompare(b.id)));
+  }
+
+  private calculateSubtotal(baseUnitPrice: number, quantity: number, sauceCharge: number): number {
+    return baseUnitPrice * quantity + sauceCharge;
   }
 }

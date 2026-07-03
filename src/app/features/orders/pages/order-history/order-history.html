@@ -117,9 +117,16 @@
               <p><strong>Total:</strong> {{ order.total | currency:'CLP':'symbol':'1.0-0' }}</p>
               <p><strong>Hora:</strong> {{ order.createdAt | date:'HH:mm' }}</p>
 
-              <button type="button" (click)="printOrder(order)">
-                Imprimir comanda
-              </button>
+              <div class="order-card-actions">
+                <button type="button" (click)="printOrder(order)">
+                  Imprimir comanda
+                </button>
+                @if (canDeleteOrder(order)) {
+                  <button type="button" class="danger-btn" (click)="deleteOrder(order)">
+                    Eliminar pedido
+                  </button>
+                }
+              </div>
             </article>
           }
         </div>
@@ -161,9 +168,16 @@
               <p><strong>Total:</strong> {{ order.total | currency:'CLP':'symbol':'1.0-0' }}</p>
               <p><strong>Fecha:</strong> {{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
 
-              <button type="button" (click)="printOrder(order)">
-                Imprimir comanda
-              </button>
+              <div class="order-card-actions">
+                <button type="button" (click)="printOrder(order)">
+                  Imprimir comanda
+                </button>
+                @if (canDeleteOrder(order)) {
+                  <button type="button" class="danger-btn" (click)="deleteOrder(order)">
+                    Eliminar pedido
+                  </button>
+                }
+              </div>
             </article>
           }
         </div>
@@ -212,9 +226,16 @@
                   <p><strong>Total:</strong> {{ order.total | currency:'CLP':'symbol':'1.0-0' }}</p>
                   <p><strong>Fecha:</strong> {{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
 
-                  <button type="button" (click)="printOrder(order)">
-                    Imprimir comanda
-                  </button>
+                  <div class="order-card-actions">
+                    <button type="button" (click)="printOrder(order)">
+                      Imprimir comanda
+                    </button>
+                    @if (canDeleteOrder(order)) {
+                      <button type="button" class="danger-btn" (click)="deleteOrder(order)">
+                        Eliminar pedido
+                      </button>
+                    }
+                  </div>
                 </article>
               }
             </div>

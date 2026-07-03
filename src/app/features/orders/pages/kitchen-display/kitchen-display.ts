@@ -72,10 +72,10 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.loadOrders();
+    void this.loadOrders();
 
     this.refreshIntervalId = setInterval(() => {
-      this.loadOrders();
+      void this.loadOrders();
     }, 5000);
     setInterval(() => {
       this.now.set(new Date());
@@ -89,17 +89,35 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadOrders(): void {
+  async loadOrders(): Promise<void> {
+    await this.historyService.loadOrders();
     this.orders.set(this.historyService.getOrders());
   }
 
-  updateStatus(orderId: string, status: Order['status']): void {
-    const updated = this.orders().map((order) =>
-      order.id === orderId ? { ...order, status } : order
+  async updateStatus(orderId: string, status: Order['status']): Promise<void> {
+    await this.historyService.updateOrderStatus(orderId, status);
+    this.orders.set(this.historyService.getOrders());
+  }
+
+  canDeleteOrder(order: Order): boolean {
+    return order.status !== 'entregado';
+  }
+
+  async deleteOrder(order: Order): Promise<void> {
+    if (!this.canDeleteOrder(order)) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Eliminar el pedido #${order.id.slice(-6)} de ${order.customerName ?? 'cliente sin nombre'}?`
     );
 
-    this.orders.set(updated);
-    this.historyService.updateOrders(updated);
+    if (!confirmed) {
+      return;
+    }
+
+    await this.historyService.deleteOrder(order.id);
+    this.orders.set(this.historyService.getOrders());
   }
 
   togglePreviousOrders(): void {
@@ -120,6 +138,14 @@ export class KitchenDisplayComponent implements OnInit, OnDestroy {
   }
 
   getSauceLines(order: Order): string[] {
+    if (order.sauces?.length) {
+      return [
+        order.sauces
+          .map((sauce) => `${sauce.name}${sauce.quantity > 1 ? ` x${sauce.quantity}` : ''}`)
+          .join(', ')
+      ];
+    }
+
     return order.items
       .filter((item) => (item.sauces?.length ?? 0) > 0)
       .map(

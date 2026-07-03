@@ -71,7 +71,7 @@
   
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 16px;
   }
 
@@ -111,6 +111,17 @@
   .spotlight-metric span {
     color: #bdbdbd;
     font-size: 14px;
+  }
+
+  .spotlight-metric.secondary {
+    margin-top: 12px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .spotlight-metric.accent {
+    margin-top: 12px;
+    background: linear-gradient(135deg, rgba(22, 163, 74, 0.22), rgba(14, 116, 144, 0.18));
+    border: 1px solid rgba(67, 214, 142, 0.22);
   }
 
   .spotlight-metric strong {
@@ -251,6 +262,7 @@
   }
   
   .channel-section,
+  .delivery-section,
   .products-section,
   .orders-section {
     margin-top: 28px;
@@ -331,6 +343,7 @@
   }
   
   .products-table,
+  .delivery-table,
   .orders-table {
     background: #1b1b1d;
     border: 1px solid #2b2b30;
@@ -365,7 +378,12 @@
   .products-table .table-row {
     grid-template-columns: 1.5fr 120px 180px;
   }
-  
+
+  .delivery-head,
+  .delivery-row {
+    grid-template-columns: 1.2fr 180px 180px;
+  }
+
   .orders-head,
   .orders-row {
     grid-template-columns: 110px 1fr 1fr 1fr 100px 1fr;
@@ -397,6 +415,8 @@
   
     .products-table .table-head,
     .products-table .table-row,
+    .delivery-head,
+    .delivery-row,
     .orders-head,
     .orders-row {
       grid-template-columns: 1fr;

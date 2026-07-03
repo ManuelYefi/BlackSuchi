@@ -1,0 +1,197 @@
+<div class="admin-data-page">
+  @if (!isAuthenticated()) {
+    <section class="login-card">
+      <div>
+        <p class="eyebrow">Solo administrador</p>
+        <h1>Área de datos</h1>
+        <p>Ingresa con credenciales de administrador para revisar y registrar gastos.</p>
+      </div>
+
+      <div class="login-form">
+        <label>
+          Usuario
+          <input
+            type="text"
+            [value]="username()"
+            (input)="username.set($any($event.target).value)"
+            placeholder="admin"
+          />
+        </label>
+
+        <label>
+          Contraseña
+          <input
+            type="password"
+            [value]="password()"
+            (input)="password.set($any($event.target).value)"
+            placeholder="1351"
+          />
+        </label>
+
+        @if (loginError()) {
+          <p class="error-text">{{ loginError() }}</p>
+        }
+
+        <button type="button" class="primary-btn" (click)="login()">
+          Ingresar
+        </button>
+      </div>
+    </section>
+  } @else {
+    <section class="admin-header">
+      <div>
+        <p class="eyebrow">Administrador</p>
+        <h1>Datos y gastos</h1>
+        <p>Registra costos operativos para descontarlos de las ventas del dashboard.</p>
+      </div>
+
+      <button type="button" class="ghost-btn" (click)="logout()">Cerrar sesión</button>
+    </section>
+
+    <section class="stats-row">
+      <article class="stat-card">
+        <span>Gastos registrados</span>
+        <strong>{{ expenses().length }}</strong>
+      </article>
+
+      <article class="stat-card">
+        <span>Total gastos</span>
+        <strong>{{ totalExpenses() | currency:'CLP':'symbol':'1.0-0' }}</strong>
+      </article>
+    </section>
+
+    <section class="content-grid">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Nuevo gasto</h2>
+          <span>Se descontará del dashboard</span>
+        </div>
+
+        <div class="expense-form">
+          <label>
+            Concepto
+            <input
+              type="text"
+              [value]="title()"
+              (input)="title.set($any($event.target).value)"
+              placeholder="Ej: Compra de salmón"
+            />
+          </label>
+
+          <label>
+            Monto
+            <input
+              type="number"
+              min="1"
+              [value]="amount()"
+              (input)="amount.set($any($event.target).value)"
+              placeholder="15000"
+            />
+          </label>
+
+          <label>
+            Fecha
+            <input
+              type="date"
+              [value]="expenseDate()"
+              (input)="expenseDate.set($any($event.target).value)"
+            />
+          </label>
+
+          <div class="worker-shifts">
+            <div class="section-label">
+              <strong>Pagos diarios de trabajadores</strong>
+              <span>Activa o quita el pago según la fecha elegida.</span>
+            </div>
+
+            <div class="worker-grid">
+              @for (worker of selectedWorkerExpenses(); track worker.key) {
+                <article class="worker-card" [class.active]="worker.active">
+                  <div>
+                    <strong>{{ worker.label }}</strong>
+                    <p>{{ worker.description }}</p>
+                  </div>
+
+                  <div class="worker-card-footer">
+                    <strong class="worker-amount">
+                      {{ worker.amount | currency:'CLP':'symbol':'1.0-0' }}
+                    </strong>
+                    <button
+                      type="button"
+                      class="worker-toggle-btn"
+                      [class.active]="worker.active"
+                      (click)="toggleWorkerShift(worker)"
+                    >
+                      {{ worker.active ? 'Quitar pago' : 'Activar pago' }}
+                    </button>
+                  </div>
+                </article>
+              }
+            </div>
+          </div>
+
+          <label>
+            Notas
+            <textarea
+              rows="4"
+              [value]="notes()"
+              (input)="notes.set($any($event.target).value)"
+              placeholder="Detalle opcional del gasto"
+            ></textarea>
+          </label>
+
+          <button type="button" class="primary-btn" [disabled]="saving()" (click)="saveExpense()">
+            {{ saving() ? 'Guardando...' : 'Registrar gasto' }}
+          </button>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Historial de gastos</h2>
+          <span>{{ expenses().length }} registros</span>
+        </div>
+
+        @if (loading()) {
+          <div class="empty-box">
+            <p>Cargando gastos...</p>
+          </div>
+        } @else if (error()) {
+          <div class="empty-box error-box">
+            <p>{{ error() }}</p>
+          </div>
+        } @else if (expenses().length === 0) {
+          <div class="empty-box">
+            <p>No hay gastos registrados todavía.</p>
+          </div>
+        } @else {
+          <div class="expense-list">
+            @for (expense of expenses(); track expense.id) {
+              <article class="expense-item">
+                <div class="expense-main">
+                  <div>
+                    <strong>{{ expense.title }}</strong>
+                    <p>{{ expense.expenseDate | date:'dd/MM/yyyy' }}</p>
+                    @if (expense.notes) {
+                      <small>
+                        {{ expense.notes.startsWith('[worker-shift]') ? 'Pago diario de trabajador' : expense.notes }}
+                      </small>
+                    }
+                  </div>
+
+                  <strong class="expense-amount">
+                    {{ expense.amount | currency:'CLP':'symbol':'1.0-0' }}
+                  </strong>
+                </div>
+
+                <button type="button" class="danger-btn" (click)="deleteExpense(expense)">
+                  Eliminar
+                </button>
+              </article>
+            }
+          </div>
+        }
+      </article>
+    </section>
+  }
+</div>

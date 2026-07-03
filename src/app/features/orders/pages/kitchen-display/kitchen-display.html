@@ -51,6 +51,11 @@
           <button (click)="updateStatus(order.id, 'listo')">
             Listo
           </button>
+          @if (canDeleteOrder(order)) {
+            <button class="danger-btn" (click)="deleteOrder(order)">
+              Eliminar
+            </button>
+          }
         </div>
       </article>
     } @else {
@@ -106,12 +111,6 @@
                     </ul>
                   }
 
-                  @if (item.sauces?.length) {
-                    <small>
-                      Salsas: {{ item.sauces!.map(x => x.name + (x.quantity > 1 ? ' x' + x.quantity : '')).join(', ') }}
-                    </small>
-                  }
-
                   @if (item.notes) {
                     <small>Nota: {{ item.notes }}</small>
                   }
@@ -132,6 +131,9 @@
               <button type="button" (click)="updateStatus(order.id, 'pendiente')">Pendiente</button>
               <button type="button" (click)="updateStatus(order.id, 'en_preparacion')">Preparando</button>
               <button type="button" (click)="updateStatus(order.id, 'listo')">Listo</button>
+              @if (canDeleteOrder(order)) {
+                <button type="button" class="danger-btn" (click)="deleteOrder(order)">Eliminar</button>
+              }
             </div>
           </article>
         }
@@ -190,6 +192,9 @@
             <div class="status-actions">
               <button type="button" (click)="updateStatus(order.id, 'en_preparacion')">Volver a preparación</button>
               <button type="button" (click)="updateStatus(order.id, 'entregado')">Entregado</button>
+              @if (canDeleteOrder(order)) {
+                <button type="button" class="danger-btn" (click)="deleteOrder(order)">Eliminar</button>
+              }
             </div>
           </article>
         }
@@ -222,6 +227,11 @@
               <p><strong>Canal:</strong> {{ getChannelLabel(order.orderChannel) }}</p>
               <p><strong>Tipo:</strong> {{ order.orderType | titlecase }}</p>
               <p><strong>Fecha:</strong> {{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+              @if (canDeleteOrder(order)) {
+                <div class="status-actions">
+                  <button type="button" class="danger-btn" (click)="deleteOrder(order)">Eliminar</button>
+                </div>
+              }
             </article>
           }
         </div>

@@ -5,12 +5,19 @@ import { Order, OrderChannel } from '../models/order.model';
   providedIn: 'root'
 })
 export class ReceiptPrintService {
-  private readonly receiptPaperWidthMm = 80;
-  private readonly receiptBottomFeedMm = 8;
+  private readonly receiptPaperWidthMm = 72;
+  private readonly receiptPaperHeightMm = 210;
+  private readonly receiptContentWidthMm = 68;
+  private readonly receiptBodyPaddingMm = 2;
 
   printKitchenTicket(order: Order): void {
+    void this.printKitchenTicketHtml(order);
+  }
+
+  private async printKitchenTicketHtml(order: Order): Promise<void> {
     const metadataHtml = this.buildMetadataHtml(order);
     const detailItemsHtml = this.buildDetailItemsHtml(order);
+    const hasSauceTicket = this.hasSauceTicketContent(order);
     const saucesHtml = this.buildSauceItemsHtml(order);
     const totalsHtml = this.buildTotalsHtml(order);
 
@@ -146,7 +153,16 @@ export class ReceiptPrintService {
       </html>
     `;
 
-    this.printHtmlSequence([detailHtml, sauceHtml]);
+    try {
+      await this.printHtmlDocument(detailHtml);
+
+      if (hasSauceTicket) {
+        await this.printHtmlDocument(sauceHtml);
+      }
+    } catch (error) {
+      console.error('[receipt-print-service] html print failed', error);
+      alert('No se pudo preparar la impresion de la comanda.');
+    }
   }
 
   private buildMetadataHtml(order: Order): string {
@@ -368,6 +384,10 @@ export class ReceiptPrintService {
       .join('');
   }
 
+  private hasSauceTicketContent(order: Order): boolean {
+    return Boolean(order.sauces?.length || order.items.some((item) => (item.sauces?.length ?? 0) > 0));
+  }
+
   private buildTotalsHtml(order: Order): string {
     const deliveryHtml = order.deliveryFee && order.deliveryFee > 0
       ? `
@@ -422,22 +442,28 @@ export class ReceiptPrintService {
     return `
       @page {
         margin: 0;
-        size: 80mm auto;
+        size: ${this.receiptPaperWidthMm}mm ${this.receiptPaperHeightMm}mm;
       }
 
       @media print {
         html,
         body {
           margin: 0 !important;
-          overflow: visible !important;
+          padding: ${this.receiptBodyPaddingMm}mm !important;
+          overflow: hidden !important;
           background: #fff !important;
-          width: 80mm !important;
+          width: ${this.receiptPaperWidthMm}mm !important;
+          height: ${this.receiptPaperHeightMm}mm !important;
         }
 
         .ticket {
-          width: 76mm !important;
+          width: ${this.receiptContentWidthMm}mm !important;
           max-width: none !important;
-          margin: 0 auto !important;
+          margin: 0 !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          transform-origin: top left !important;
+          transform: scale(var(--ticket-scale, 1)) !important;
         }
       }
 
@@ -447,23 +473,25 @@ export class ReceiptPrintService {
 
       html {
         background: #fff;
-        width: 80mm;
+        width: ${this.receiptPaperWidthMm}mm;
+        height: ${this.receiptPaperHeightMm}mm;
       }
 
       body {
         margin: 0;
-        padding: 2mm;
+        padding: ${this.receiptBodyPaddingMm}mm;
         font-family: Arial, Helvetica, sans-serif;
         font-size: 12px;
         color: #000;
         overflow-wrap: break-word;
         word-break: break-word;
         background: #fff;
-        width: 80mm;
+        width: ${this.receiptPaperWidthMm}mm;
+        min-height: ${this.receiptPaperHeightMm}mm;
       }
 
       .ticket {
-        width: 76mm;
+        width: ${this.receiptContentWidthMm}mm;
         max-width: none;
         margin: 0;
       }
@@ -622,15 +650,8 @@ export class ReceiptPrintService {
     `;
   }
 
-  private printHtmlSequence(documents: string[]): void {
-    const queue = [...documents];
-
-    const printNext = (): void => {
-      const html = queue.shift();
-      if (!html) {
-        return;
-      }
-
+  private printHtmlDocument(html: string): Promise<void> {
+    return new Promise((resolve, reject) => {
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
       iframe.style.left = '-10000px';
@@ -647,17 +668,13 @@ export class ReceiptPrintService {
 
       if (!frameWindow || !frameDocument) {
         iframe.remove();
-        alert('No se pudo preparar la impresion de la comanda.');
+        reject(new Error('No se pudo preparar la impresion de la comanda.'));
         return;
       }
 
       const cleanup = () => {
         iframe.remove();
-        if (queue.length) {
-          setTimeout(() => {
-            printNext();
-          }, 250);
-        }
+        resolve();
       };
 
       frameWindow.onafterprint = cleanup;
@@ -677,9 +694,7 @@ export class ReceiptPrintService {
           }
         }, 1500);
       }, 150);
-    };
-
-    printNext();
+    });
   }
 
   private applyMeasuredPageSize(frameDocument: Document): void {
@@ -690,26 +705,30 @@ export class ReceiptPrintService {
       return;
     }
 
-    const pxPerMm = this.getPixelsPerMillimeter(frameDocument);
     const ticketHeightPx = Math.max(ticket.scrollHeight, ticket.getBoundingClientRect().height);
-    const bodyStyles = frameDocument.defaultView?.getComputedStyle(body);
-    const bodyPaddingPx = bodyStyles
-      ? parseFloat(bodyStyles.paddingTop) + parseFloat(bodyStyles.paddingBottom)
-      : 0;
-    const contentHeightPx = ticketHeightPx + bodyPaddingPx;
-    const pageHeightMm = Math.ceil(contentHeightPx / pxPerMm) + this.receiptBottomFeedMm;
+    const pxPerMm = this.getPixelsPerMillimeter(frameDocument);
+    const availableHeightMm = this.receiptPaperHeightMm - this.receiptBodyPaddingMm * 2;
+    const availableHeightPx = availableHeightMm * pxPerMm;
+    const scale = ticketHeightPx > 0 ? Math.min(1, availableHeightPx / ticketHeightPx) : 1;
+    const safeScale = Number.isFinite(scale) && scale > 0 ? Math.floor(scale * 100) / 100 : 1;
     const pageSizeStyle = frameDocument.createElement('style');
 
     pageSizeStyle.textContent = `
       @page {
         margin: 0;
-        size: ${this.receiptPaperWidthMm}mm ${pageHeightMm}mm;
+        size: ${this.receiptPaperWidthMm}mm ${this.receiptPaperHeightMm}mm;
       }
 
       html,
       body {
         width: ${this.receiptPaperWidthMm}mm !important;
-        min-height: ${pageHeightMm}mm !important;
+        height: ${this.receiptPaperHeightMm}mm !important;
+        min-height: ${this.receiptPaperHeightMm}mm !important;
+        overflow: hidden !important;
+      }
+
+      .ticket {
+        --ticket-scale: ${safeScale};
       }
     `;
 

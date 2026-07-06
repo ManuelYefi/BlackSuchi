@@ -3,6 +3,7 @@ require('dotenv').config();
 const cors = require('cors');
 const express = require('express');
 const { ping } = require('./db');
+const { printKitchenTicket } = require('./receipt-printer');
 const {
   createOrder,
   clearOrdersByMonth,
@@ -252,6 +253,18 @@ app.get('/api/orders/:id', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
   const order = await createOrder(req.body);
   res.status(201).json(order);
+});
+
+app.post('/api/print/kitchen', async (req, res) => {
+  const order = req.body;
+
+  if (!order?.items?.length) {
+    res.status(400).json({ message: 'Pedido invalido para imprimir.' });
+    return;
+  }
+
+  await printKitchenTicket(order, { ticketType: req.body?.ticketType });
+  res.json({ ok: true });
 });
 
 app.patch('/api/orders/:id/status', async (req, res) => {
